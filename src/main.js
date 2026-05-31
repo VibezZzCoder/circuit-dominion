@@ -25,7 +25,7 @@ import { Renderer } from "./render.js";
 import { BoardTurnState, TopLevelState, createInitialState, pushLog, setBoardTurnState, transitionTopState } from "./state.js";
 import { chooseBoardAiMove } from "./ai.js";
 import { UIController } from "./ui.js";
-import { FACTION_NAMES, POWER_NODES, enemyFaction } from "./utils.js";
+import { FACTION_NAMES, POWER_NODES } from "./utils.js";
 
 const ui = new UIController(document);
 const boardCanvas = document.getElementById("board");
@@ -39,6 +39,7 @@ let game = createInitialState("ai");
 const audio = new AudioManager(() => game.muted);
 const fpsTick = fpsMeter();
 let helpReturnState = TopLevelState.TITLE;
+let helpPausedCombat = false;
 
 const input = new InputManager({
   getTopState: () => game.topState,
@@ -75,11 +76,21 @@ function returnToTitle() {
 function setHelpVisible(on) {
   if (on) {
     helpReturnState = game.topState;
+    // Freeze an active duel behind the overlay so the fight does not keep
+    // dealing damage (and so the combat-state sync does not flip topState off HELP).
+    helpPausedCombat = Boolean(game.combat && !game.combat.paused);
+    if (helpPausedCombat) {
+      game.combat.paused = true;
+    }
     ui.toggleHelp(true);
     transitionTopState(game, TopLevelState.HELP, "open help");
   } else {
     ui.toggleHelp(false);
     transitionTopState(game, helpReturnState, "close help");
+    if (helpPausedCombat && game.combat) {
+      game.combat.paused = false;
+    }
+    helpPausedCombat = false;
   }
 }
 
@@ -205,8 +216,8 @@ function runBoardAiTick() {
 
   const choice = chooseBoardAiMove(game);
   if (!choice) {
-    game.turn = enemyFaction(game.turn);
     pushLog(game, "Void Core skipped turn.", "info");
+    endTurnFlow();
     return;
   }
 
@@ -303,6 +314,13 @@ function updateGame(deltaSec) {
 }
 
 function syncUi() {
+  if (game.topState === TopLevelState.HELP) {
+    // Help is a modal overlay: keep whatever screen is underneath and do not
+    // touch board/combat HUD (the board grid may be empty at the title).
+    syncQaBridge();
+    return;
+  }
+
   if (game.topState === TopLevelState.TITLE) {
     ui.showScreen("titleScreen");
     syncQaBridge();
@@ -332,7 +350,8 @@ function syncUi() {
 }
 
 function draw() {
-  if (game.topState === TopLevelState.BOARD || game.topState === TopLevelState.HELP) {
+  const boardReady = Array.isArray(game.board) && game.board.length === 9;
+  if (boardReady && (game.topState === TopLevelState.BOARD || game.topState === TopLevelState.HELP)) {
     renderer.drawBoard(game);
   }
   if (game.combat) {

@@ -197,7 +197,8 @@ export class InputManager {
       event.preventDefault();
       this.triggerTouchAction(role, kind);
     };
-    element.addEventListener("click", activate);
+    // Bind pointerdown only. Binding both pointerdown and click made a single tap
+    // latch the action twice (once per event), double-firing attacks/specials.
     element.addEventListener("pointerdown", activate, { passive: false });
   }
 

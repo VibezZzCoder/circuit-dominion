@@ -92,9 +92,12 @@ export class Renderer {
         ctx.strokeStyle = "#ffffff18";
         ctx.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
 
-        ctx.fillStyle = square.energy === ENERGY.LIGHT ? "#9effff99" : square.energy === ENERGY.DARK ? "#f0a0ff99" : "#e8f4ff66";
-        ctx.font = `${Math.max(11, cell * 0.18)}px Arial`;
-        ctx.fillText(square.energy, x + 6, y + 16);
+        // Only label charged squares; neutral cells stay clean to cut visual noise.
+        if (square.energy !== ENERGY.NEUTRAL) {
+          ctx.fillStyle = square.energy === ENERGY.LIGHT ? "#9effff88" : "#f0a0ff88";
+          ctx.font = `${Math.max(10, cell * 0.16)}px Arial`;
+          ctx.fillText(square.energy, x + 6, y + 16);
+        }
 
         if (square.shift) {
           ctx.strokeStyle = "#ffdc6366";
@@ -364,7 +367,8 @@ export class Renderer {
         ctx.fill();
         ctx.stroke();
       } else if (def.attackRange < 130) {
-        this.drawPolygon(ctx, 26, def.faction === "S" ? 5 : 4, Math.PI / 2);
+        // Pentagon for all melee fighters to match the board-piece silhouette.
+        this.drawPolygon(ctx, 26, 5, Math.PI / 2);
       } else {
         ctx.beginPath();
         ctx.arc(0, 0, 25, 0, Math.PI * 2);
@@ -378,6 +382,22 @@ export class Renderer {
       ctx.textBaseline = "middle";
       ctx.font = "bold 15px Arial";
       ctx.fillText(def.visual.abbr, 0, 0);
+    }
+
+    if (fighter.state === "attackStartup" || fighter.state === "specialStartup") {
+      // Telegraph the wind-up so the new startup window is readable.
+      ctx.strokeStyle = "#ffdc63cc";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 32, -Math.PI / 2, Math.PI * 1.5);
+      ctx.stroke();
+    }
+
+    if (fighter.hurtUntil > now) {
+      ctx.fillStyle = "#ff5f7a55";
+      ctx.beginPath();
+      ctx.arc(0, 0, 30, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     if (fighter.shieldUntil > now) {

@@ -11,8 +11,10 @@ export function chooseBoardAiMove(game) {
   for (const unit of units) {
     const moves = legalMovesForUnit(game, unit);
     for (const move of moves) {
+      // scoreBoardMove already adds Math.random() * 4 jitter for variety, so we
+      // always keep the highest-scoring move and never discard a clear capture.
       const score = scoreBoardMove(game, unit, move);
-      if (score > bestScore || Math.random() < 0.05) {
+      if (score > bestScore) {
         best = { unitId: unit.id, move, score };
         bestScore = score;
       }

@@ -11,6 +11,15 @@ export class AssetManager {
   }
 
   async loadManifest() {
+    // The bundled single-file build injects an embedded manifest + data URIs so the
+    // asset manager works offline (file://) with no fetch. The modular build leaves
+    // this undefined and fetches from disk as usual.
+    const inline = globalThis.__CD_INLINE_ASSETS__;
+    if (inline && inline.manifest) {
+      this.registerManifest(inline.manifest);
+      return;
+    }
+
     try {
       const response = await fetch(MANIFEST_URL);
       if (!response.ok) {
@@ -18,15 +27,27 @@ export class AssetManager {
         return;
       }
       const manifest = await response.json();
-      for (const asset of manifest.assets || []) {
-        this.assets.set(asset.id, asset);
-        if (asset.path && (asset.type === "background" || asset.type === "unit-sprite" || asset.type === "sprite-sheet")) {
-          this.loadImage(asset);
-        }
-      }
+      this.registerManifest(manifest);
     } catch (error) {
       this.warnOnce("manifest", `Asset manifest unavailable: ${error.message}`);
     }
+  }
+
+  registerManifest(manifest) {
+    for (const asset of manifest.assets || []) {
+      this.assets.set(asset.id, asset);
+      if (asset.path && (asset.type === "background" || asset.type === "unit-sprite" || asset.type === "sprite-sheet")) {
+        this.loadImage(asset);
+      }
+    }
+  }
+
+  resolveAssetUrl(path) {
+    const inline = globalThis.__CD_INLINE_ASSETS__;
+    if (inline && inline.dataUris && inline.dataUris[path]) {
+      return inline.dataUris[path];
+    }
+    return new URL(`../${path}`, import.meta.url).href;
   }
 
   loadImage(asset) {
@@ -48,7 +69,7 @@ export class AssetManager {
       },
       { once: true },
     );
-    image.src = new URL(`../${asset.path}`, import.meta.url).href;
+    image.src = this.resolveAssetUrl(asset.path);
   }
 
   getImage(id) {
@@ -77,10 +98,10 @@ export class AssetManager {
     const landscape = this.getAsset("background.title-landscape");
     const portrait = this.getAsset("background.title-portrait");
     if (landscape) {
-      root.style.setProperty("--title-bg-landscape", `url("${new URL(`../${landscape.path}`, import.meta.url).href}")`);
+      root.style.setProperty("--title-bg-landscape", `url("${this.resolveAssetUrl(landscape.path)}")`);
     }
     if (portrait) {
-      root.style.setProperty("--title-bg-portrait", `url("${new URL(`../${portrait.path}`, import.meta.url).href}")`);
+      root.style.setProperty("--title-bg-portrait", `url("${this.resolveAssetUrl(portrait.path)}")`);
     }
   }
 

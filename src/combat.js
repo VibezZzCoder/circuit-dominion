@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { energyModifierForFaction } from "./board.js";
-import { createActionTiming, setFighterState, tickFighterState } from "./combat-state.js";
+import { createActionTiming, isFighterLocked, setFighterState, tickFighterState } from "./combat-state.js";
 import { FighterState } from "./state.js";
 import { getDuelAiIntent } from "./ai.js";
 import { UNIT_DEFS } from "./units.js";
@@ -76,8 +76,10 @@ function makeFighter(unit, slot, energy) {
     auraUntil: 0,
     pullUntil: 0,
     invisUntil: 0,
+    hurtUntil: 0,
     state: FighterState.IDLE,
     stateUntil: 0,
+    pendingAction: null,
     mod,
     controller: "ai",
     label: `${def.name} · ${FACTION_NAMES[def.faction]}`,
@@ -164,7 +166,11 @@ export function updateCombat(game, actions, deltaSec, nowMs, audio) {
   for (const fighter of combat.fighters) {
     fighter.attackCooldown = Math.max(0, fighter.attackCooldown - deltaSec);
     fighter.specialCooldown = Math.max(0, fighter.specialCooldown - deltaSec);
-    tickFighterState(fighter, nowMs);
+    // Action states (startup/active/recovery) are driven by pendingAction timers in
+    // progressAction; only let the generic tick clear transient states otherwise.
+    if (!fighter.pendingAction) {
+      tickFighterState(fighter, nowMs);
+    }
   }
 
   const [f0, f1] = combat.fighters;
@@ -223,6 +229,14 @@ function controlFighter(game, combat, fighter, opponent, actions, dt, nowMs, aud
     intent = getDuelAiIntent(fighter, opponent, combat);
   }
 
+  // Advance any in-progress attack/special before reading new input so its
+  // scheduled effect fires at the right moment and recovery is honored.
+  progressAction(fighter, opponent, combat, nowMs, audio);
+
+  if (fighter.state === FighterState.DEAD) {
+    return;
+  }
+
   let { moveX, moveY } = intent;
 
   const mag = Math.hypot(moveX, moveY);
@@ -231,19 +245,71 @@ function controlFighter(game, combat, fighter, opponent, actions, dt, nowMs, aud
     moveY /= mag;
   }
 
-  fighter.vx += moveX * fighter.speed * 5 * dt;
-  fighter.vy += moveY * fighter.speed * 5 * dt;
-  fighter.state = mag > 0.05 ? FighterState.MOVE : FighterState.IDLE;
+  const busy = Boolean(fighter.pendingAction);
+  const hardLocked = isFighterLocked(fighter);
+  // Movement is free when idle, heavily damped during startup/active, and partly
+  // reduced during recovery so committing to an action carries weight.
+  const moveScale = hardLocked ? 0.15 : busy ? 0.55 : 1;
+  fighter.vx += moveX * fighter.speed * 5 * dt * moveScale;
+  fighter.vy += moveY * fighter.speed * 5 * dt * moveScale;
 
-  if (intent.useAttack) {
-    attemptAttack(fighter, opponent, combat, nowMs, audio);
+  if (!busy && fighter.state !== FighterState.STUNNED) {
+    fighter.state = mag > 0.05 ? FighterState.MOVE : FighterState.IDLE;
   }
-  if (intent.useSpecial) {
-    attemptSpecial(fighter, opponent, combat, nowMs, audio);
+
+  if (!busy && !hardLocked) {
+    if (intent.useAttack) {
+      beginAttack(fighter, opponent, combat, nowMs, audio);
+    } else if (intent.useSpecial) {
+      beginSpecial(fighter, opponent, combat, nowMs, audio);
+    }
   }
 }
 
-function attemptAttack(fighter, opponent, combat, nowMs, audio) {
+function scheduleAction(fighter, kind, timing, nowMs) {
+  const activeAt = nowMs + timing.startupMs;
+  const recoverAt = activeAt + timing.activeMs;
+  fighter.pendingAction = {
+    kind,
+    executed: false,
+    activeAt,
+    recoverAt,
+    endAt: recoverAt + timing.recoveryMs,
+  };
+}
+
+function progressAction(fighter, opponent, combat, nowMs, audio) {
+  const pa = fighter.pendingAction;
+  if (!pa) {
+    return;
+  }
+
+  if (!pa.executed && nowMs >= pa.activeAt) {
+    pa.executed = true;
+    if (pa.kind === "attack") {
+      setFighterState(fighter, FighterState.ATTACK_ACTIVE, nowMs, Math.max(0, pa.recoverAt - nowMs));
+      executeAttack(fighter, opponent, combat, nowMs, audio);
+    } else {
+      setFighterState(fighter, FighterState.SPECIAL_ACTIVE, nowMs, Math.max(0, pa.recoverAt - nowMs));
+      executeSpecial(fighter, opponent, combat, nowMs, audio);
+    }
+  }
+
+  if (pa.executed && nowMs >= pa.recoverAt && nowMs < pa.endAt) {
+    const recovery = pa.kind === "attack" ? FighterState.ATTACK_RECOVERY : FighterState.SPECIAL_RECOVERY;
+    if (fighter.state !== recovery) {
+      setFighterState(fighter, recovery, nowMs, Math.max(0, pa.endAt - nowMs));
+    }
+  }
+
+  if (nowMs >= pa.endAt) {
+    fighter.pendingAction = null;
+    fighter.state = FighterState.IDLE;
+    fighter.stateUntil = 0;
+  }
+}
+
+function beginAttack(fighter, opponent, combat, nowMs, audio) {
   if (fighter.attackCooldown > 0 || combat.countdown > 0 || combat.state !== "combatActive") {
     return;
   }
@@ -251,15 +317,17 @@ function attemptAttack(fighter, opponent, combat, nowMs, audio) {
   const def = UNIT_DEFS[fighter.unit.type];
   const timing = createActionTiming(def, "attack");
   fighter.attackCooldown = def.attackCooldown;
+  scheduleAction(fighter, "attack", timing, nowMs);
   setFighterState(fighter, FighterState.ATTACK_STARTUP, nowMs, timing.startupMs);
   audio.beep("attack");
+}
 
+function executeAttack(fighter, opponent, combat, nowMs, audio) {
+  const def = UNIT_DEFS[fighter.unit.type];
   const distance = dist2d(fighter, opponent);
   if (def.attackRange < 130) {
     if (distance < def.attackRange + opponent.radius) {
-      setFighterState(fighter, FighterState.ATTACK_ACTIVE, nowMs, timing.activeMs);
       damageFighter(opponent, fighter.damage, fighter, combat, audio);
-      setFighterState(fighter, FighterState.ATTACK_RECOVERY, nowMs, timing.recoveryMs);
     } else {
       const angle = Math.atan2(opponent.y - fighter.y, opponent.x - fighter.x);
       fighter.vx += Math.cos(angle) * 210;
@@ -270,7 +338,7 @@ function attemptAttack(fighter, opponent, combat, nowMs, audio) {
   }
 }
 
-function attemptSpecial(fighter, opponent, combat, nowMs, audio) {
+function beginSpecial(fighter, opponent, combat, nowMs, audio) {
   if (fighter.specialCooldown > 0 || combat.countdown > 0 || combat.state !== "combatActive") {
     return;
   }
@@ -279,9 +347,12 @@ function attemptSpecial(fighter, opponent, combat, nowMs, audio) {
   const timing = createActionTiming(def, "special");
   fighter.specialCooldown = def.specialCooldown;
   fighter.specialCooldownMax = def.specialCooldown;
+  scheduleAction(fighter, "special", timing, nowMs);
   setFighterState(fighter, FighterState.SPECIAL_STARTUP, nowMs, timing.startupMs);
   audio.beep("special");
+}
 
+function executeSpecial(fighter, opponent, combat, nowMs, audio) {
   const t = fighter.unit.type;
   if (t === "CC" || t === "SD") {
     fighter.shieldUntil = nowMs + 2200;
@@ -332,8 +403,6 @@ function attemptSpecial(fighter, opponent, combat, nowMs, audio) {
     }
     spawnFx(combat, fighter.x, fighter.y, "#d56bff", 24);
   }
-
-  setFighterState(fighter, FighterState.SPECIAL_ACTIVE, nowMs, timing.activeMs);
 }
 
 function fireProjectile(fighter, target, damage, combat, speed, radius, spread) {
@@ -362,7 +431,9 @@ function damageFighter(target, amount, source, combat, audio) {
   }
 
   target.hp -= dmg;
-  setFighterState(target, FighterState.HURT, performance.now(), 90);
+  // Render-only flash; the target's action/idle state is driven by its own pending
+  // action so a hit never silently cancels an in-flight attack.
+  target.hurtUntil = performance.now() + 110;
   audio.beep("hit");
   spawnFx(combat, target.x, target.y, UNIT_DEFS[source.unit.type].faction === "S" ? "#6dfcff" : "#d56bff", 6);
 }
