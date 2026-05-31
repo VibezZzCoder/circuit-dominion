@@ -1,0 +1,412 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { getUnitAt } from "./board.js";
+import { UNIT_DEFS } from "./units.js";
+import { ENERGY, POWER_NODES, clamp, energyLabel, unitFaction } from "./utils.js";
+
+export class Renderer {
+  constructor(boardCanvas, arenaCanvas) {
+    this.boardCanvas = boardCanvas;
+    this.boardCtx = boardCanvas.getContext("2d");
+    this.arenaCanvas = arenaCanvas;
+    this.arenaCtx = arenaCanvas.getContext("2d");
+  }
+
+  resizeBoard() {
+    const rect = this.boardCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+    const dpr = window.devicePixelRatio || 1;
+    this.boardCanvas.width = rect.width * dpr;
+    this.boardCanvas.height = rect.height * dpr;
+    this.boardCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  resizeArena() {
+    const rect = this.arenaCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+    const dpr = window.devicePixelRatio || 1;
+    this.arenaCanvas.width = rect.width * dpr;
+    this.arenaCanvas.height = rect.height * dpr;
+    this.arenaCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  drawBoard(game) {
+    const ctx = this.boardCtx;
+    const canvas = this.boardCanvas;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const cell = Math.min(width, height) / 9;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+
+    const ox = (width - cell * 9) / 2;
+    const oy = (height - cell * 9) / 2;
+    ctx.translate(ox, oy);
+
+    this.drawBoardBackground(ctx, game, cell);
+    this.drawLegalMoves(ctx, game, cell);
+    this.drawSelectedUnitFrame(ctx, game, cell);
+    this.drawBoardUnits(ctx, game, cell);
+
+    ctx.restore();
+  }
+
+  drawBoardBackground(ctx, game, cell) {
+    for (let row = 0; row < 9; row += 1) {
+      for (let col = 0; col < 9; col += 1) {
+        const square = game.board[row][col];
+        const x = col * cell;
+        const y = row * cell;
+
+        const grad = ctx.createLinearGradient(x, y, x + cell, y + cell);
+        if (square.energy === ENERGY.LIGHT) {
+          grad.addColorStop(0, "#113345");
+          grad.addColorStop(1, "#1aefff22");
+        } else if (square.energy === ENERGY.DARK) {
+          grad.addColorStop(0, "#1a0d27");
+          grad.addColorStop(1, "#b43cff26");
+        } else {
+          grad.addColorStop(0, "#14202d");
+          grad.addColorStop(1, "#11151c");
+        }
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, cell, cell);
+
+        ctx.strokeStyle = "#ffffff18";
+        ctx.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
+
+        ctx.fillStyle = square.energy === ENERGY.LIGHT ? "#9effff99" : square.energy === ENERGY.DARK ? "#f0a0ff99" : "#e8f4ff66";
+        ctx.font = `${Math.max(11, cell * 0.18)}px Arial`;
+        ctx.fillText(square.energy, x + 6, y + 16);
+
+        if (square.shift) {
+          ctx.strokeStyle = "#ffdc6366";
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(x + 5, y + 5, cell - 10, cell - 10);
+          ctx.setLineDash([]);
+        }
+
+        if (square.node) {
+          ctx.beginPath();
+          ctx.arc(x + cell * 0.5, y + cell * 0.5, cell * 0.16, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffdc6344";
+          ctx.fill();
+          ctx.strokeStyle = "#ffdc63";
+          ctx.stroke();
+          ctx.fillStyle = "#fff0a0";
+          ctx.font = `${cell * 0.26}px Arial`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("⚡", x + cell * 0.5, y + cell * 0.5);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+        }
+      }
+    }
+  }
+
+  drawLegalMoves(ctx, game, cell) {
+    if (!game.debug.showLegal) {
+      return;
+    }
+
+    for (const move of game.legalMoves) {
+      ctx.fillStyle = move.attack ? "#ff5f7a66" : "#7dff9655";
+      ctx.beginPath();
+      ctx.arc(move.col * cell + cell / 2, move.row * cell + cell / 2, cell * 0.31, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = move.attack ? "#ffb0bf" : "#baffc7";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  drawSelectedUnitFrame(ctx, game, cell) {
+    if (!game.selectedUnitId) {
+      return;
+    }
+
+    const unit = game.units.find((u) => u.id === game.selectedUnitId);
+    if (!unit || !unit.alive) {
+      return;
+    }
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "#ffffff";
+    ctx.shadowBlur = 12;
+    ctx.strokeRect(unit.col * cell + 3, unit.row * cell + 3, cell - 6, cell - 6);
+    ctx.shadowBlur = 0;
+  }
+
+  drawBoardUnits(ctx, game, cell) {
+    for (const unit of game.units) {
+      if (!unit.alive) {
+        continue;
+      }
+      this.drawUnitShape(ctx, unit, unit.col * cell + cell / 2, unit.row * cell + cell / 2, cell * 0.36, cell);
+    }
+  }
+
+  drawUnitShape(ctx, unit, x, y, radius, cell) {
+    const def = UNIT_DEFS[unit.type];
+    const solar = def.faction === "S";
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = solar ? "#102e3b" : "#241032";
+    ctx.strokeStyle = solar ? "#6dfcff" : "#d56bff";
+    ctx.lineWidth = 2;
+
+    if (unit.type === "PS" || unit.type === "RC") {
+      this.drawPolygon(ctx, radius, 5, Math.PI / 2);
+    } else if (unit.type === "AS" || unit.type === "EC") {
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-radius * 0.8, -radius * 0.8, radius * 1.6, radius * 1.6);
+      ctx.strokeRect(-radius * 0.8, -radius * 0.8, radius * 1.6, radius * 1.6);
+      ctx.rotate(-Math.PI / 4);
+    } else if (unit.type === "SD" || unit.type === "GB" || unit.type === "NW") {
+      this.drawRoundRect(ctx, -radius, -radius * 0.72, radius * 2, radius * 1.44, 8);
+      ctx.fill();
+      ctx.stroke();
+    } else if (unit.type === "PM" || unit.type === "CB" || unit.type === "GW") {
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      this.drawPolygon(ctx, radius, 6, Math.PI / 6);
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#e9fbff";
+    ctx.font = `bold ${Math.max(10, cell * 0.18)}px Arial`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(def.visual.abbr, 0, 0);
+
+    const healthWidth = radius * 1.8;
+    ctx.fillStyle = "#000b";
+    ctx.fillRect(-healthWidth / 2, radius + 4, healthWidth, 4);
+    ctx.fillStyle = solar ? "#7dff96" : "#ff7aa0";
+    ctx.fillRect(-healthWidth / 2, radius + 4, healthWidth * Math.max(0, unit.hp / unit.maxHp), 4);
+
+    if (unit.weakTurns > 0) {
+      ctx.fillStyle = "#ffdc63";
+      ctx.font = `${Math.max(9, cell * 0.13)}px Arial`;
+      ctx.fillText("WEAK", 0, -radius - 7);
+    }
+
+    ctx.restore();
+  }
+
+  drawCombat(game) {
+    const combat = game.combat;
+    const ctx = this.arenaCtx;
+    const width = this.arenaCanvas.clientWidth;
+    const height = this.arenaCanvas.clientHeight;
+
+    ctx.clearRect(0, 0, width, height);
+    const sx = width / 960;
+    const sy = height / 520;
+
+    ctx.save();
+    ctx.scale(sx, sy);
+
+    const gradient = ctx.createLinearGradient(0, 0, 960, 520);
+    gradient.addColorStop(0, combat?.energy === "L" ? "#0c3240" : combat?.energy === "D" ? "#210c30" : "#101924");
+    gradient.addColorStop(1, "#02060c");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 960, 520);
+
+    ctx.strokeStyle = "#ffffff12";
+    for (let x = 0; x < 960; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 520);
+      ctx.stroke();
+    }
+    for (let y = 0; y < 520; y += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(960, y);
+      ctx.stroke();
+    }
+
+    if (combat) {
+      for (const projectile of combat.projectiles) {
+        ctx.strokeStyle = projectile.color;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.45;
+        ctx.beginPath();
+        ctx.moveTo(projectile.x - projectile.vx * 0.04, projectile.y - projectile.vy * 0.04);
+        ctx.lineTo(projectile.x, projectile.y);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = projectile.color;
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (const beam of combat.beams) {
+        ctx.strokeStyle = beam.color;
+        ctx.lineWidth = 6;
+        ctx.shadowColor = beam.color;
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.moveTo(beam.from.x, beam.from.y);
+        ctx.lineTo(beam.to.x, beam.to.y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      const now = performance.now();
+      for (const fx of combat.effects) {
+        const k = clamp((fx.until - now) / fx.life, 0, 1);
+        ctx.globalAlpha = Math.max(0, k);
+        ctx.strokeStyle = fx.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, Math.max(0, fx.radius * (1 - k + 0.2)), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      for (const fighter of combat.fighters) {
+        this.drawFighter(ctx, fighter, game.debug.showRanges);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  drawFighter(ctx, fighter, showRanges) {
+    const def = UNIT_DEFS[fighter.unit.type];
+    const solar = def.faction === "S";
+    const now = performance.now();
+
+    ctx.save();
+    ctx.translate(fighter.x, fighter.y);
+    if (fighter.invisUntil > now) {
+      ctx.globalAlpha = 0.42;
+    }
+
+    ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = solar ? "#11313e" : "#2b1038";
+    ctx.strokeStyle = solar ? "#6dfcff" : "#d56bff";
+    ctx.lineWidth = 3;
+
+    if (fighter.unit.type === "SD" || fighter.unit.type === "GB" || fighter.unit.type === "NW") {
+      this.drawRoundRect(ctx, -28, -20, 56, 40, 10);
+      ctx.fill();
+      ctx.stroke();
+    } else if (def.attackRange < 130) {
+      this.drawPolygon(ctx, 26, def.faction === "S" ? 5 : 4, Math.PI / 2);
+    } else {
+      ctx.beginPath();
+      ctx.arc(0, 0, 25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 15px Arial";
+    ctx.fillText(def.visual.abbr, 0, 0);
+
+    if (fighter.shieldUntil > now) {
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 35, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (fighter.auraUntil > now || fighter.pullUntil > now) {
+      ctx.strokeStyle = solar ? "#6dfcff88" : "#d56bff88";
+      ctx.beginPath();
+      ctx.arc(0, 0, 60 + Math.sin(now / 90) * 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (showRanges) {
+      ctx.strokeStyle = "#ffffff33";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, clamp(def.attackRange / 2.2, 20, 240), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  drawPolygon(ctx, radius, points, rotation) {
+    ctx.beginPath();
+    for (let i = 0; i < points; i += 1) {
+      const a = rotation + (i * 2 * Math.PI) / points;
+      ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  drawRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  boardPointToCell(event) {
+    const rect = this.boardCanvas.getBoundingClientRect();
+    const width = this.boardCanvas.clientWidth;
+    const height = this.boardCanvas.clientHeight;
+    const cell = Math.min(width, height) / 9;
+    const ox = (width - cell * 9) / 2;
+    const oy = (height - cell * 9) / 2;
+    const col = Math.floor((event.clientX - rect.left - ox) / cell);
+    const row = Math.floor((event.clientY - rect.top - oy) / cell);
+    return { row, col };
+  }
+
+  buildPowerNodeInfo(game) {
+    return POWER_NODES.map(([row, col], idx) => {
+      const unit = getUnitAt(game, row, col);
+      const owner = unit ? unitFaction(unit, UNIT_DEFS) : "-";
+      return `⚡${idx + 1} ${owner === "S" ? "Solar" : owner === "V" ? "Void" : "Open"}`;
+    });
+  }
+
+  buildSelectedInfo(game) {
+    const unit = game.units.find((u) => u.id === game.selectedUnitId && u.alive);
+    if (!unit) {
+      return "Select one of your robots.";
+    }
+    const def = UNIT_DEFS[unit.type];
+    const energy = game.board[unit.row][unit.col].energy;
+    return `${def.name} (${def.visual.abbr})\n${def.faction === "S" ? "Solar" : "Void"} · ${def.alignment} align · HP ${Math.max(0, Math.ceil(unit.hp))}/${def.maxHp}\nMove: ${moveText(def.boardMovement.type)}\nAttack ${def.attackDamage} · ${def.attackRange < 120 ? "Melee" : "Ranged"} · CD ${def.attackCooldown}s\nSquare: ${energyLabel(energy)}${unit.type === "PM" ? "\nAbility: click adjacent ally to repair." : ""}${unit.type === "CB" ? "\nAbility: click adjacent enemy to weaken." : ""}`;
+  }
+}
+
+function moveText(type) {
+  if (type === "king") return "1 any direction";
+  if (type === "runner") return "up to 3 any direction";
+  if (type === "phase") return "up to 3, phases through one robot";
+  if (type === "line") return "up to 4 any direction";
+  if (type === "heavy") return "2 orthogonal or 1 diagonal";
+  return "up to 2 orthogonal";
+}

@@ -1,0 +1,107 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ALIGNMENTS, FACTIONS } from "./utils.js";
+
+export const UNIT_DEFS = {
+  CC: {
+    id: "CC",
+    name: "Core Commander",
+    displayName: "Core Commander",
+    faction: FACTIONS.SOLAR,
+    alignment: ALIGNMENTS[FACTIONS.SOLAR],
+    isCommandUnit: true,
+    maxHp: 125,
+    speed: 168,
+    attackDamage: 15,
+    attackRange: 86,
+    attackCooldown: 0.56,
+    projectile: false,
+    boardMovement: { type: "king", maxSteps: 1 },
+    boardAbility: null,
+    duelSpecial: "Defensive shield burst",
+    specialCooldown: 4,
+    visual: { shape: "hex", abbr: "CC", glow: "solar" },
+    aiHints: { role: "balanced", protectCommand: true },
+    balanceNotes: "Moderate all-round command unit.",
+    timings: { attackStartup: 90, attackActive: 100, attackRecovery: 180, specialStartup: 120, specialActive: 2200, specialRecovery: 250 },
+  },
+  PS: {
+    id: "PS", name: "Photon Striker", displayName: "Photon Striker", faction: FACTIONS.SOLAR, alignment: ALIGNMENTS[FACTIONS.SOLAR], isCommandUnit: false,
+    maxHp: 82, speed: 255, attackDamage: 18, attackRange: 58, attackCooldown: 0.42, projectile: false,
+    boardMovement: { type: "runner", maxSteps: 3 }, boardAbility: null, duelSpecial: "Dash attack", specialCooldown: 4,
+    visual: { shape: "pentagon", abbr: "PS", glow: "solar" }, aiHints: { role: "melee" }, balanceNotes: "Fast skirmisher.",
+    timings: { attackStartup: 70, attackActive: 90, attackRecovery: 160, specialStartup: 60, specialActive: 220, specialRecovery: 220 },
+  },
+  AS: {
+    id: "AS", name: "Arc Sniper", displayName: "Arc Sniper", faction: FACTIONS.SOLAR, alignment: ALIGNMENTS[FACTIONS.SOLAR], isCommandUnit: false,
+    maxHp: 70, speed: 178, attackDamage: 16, attackRange: 470, attackCooldown: 0.72, projectile: true,
+    boardMovement: { type: "line", maxSteps: 4 }, boardAbility: null, duelSpecial: "Charged laser shot", specialCooldown: 6,
+    visual: { shape: "diamond", abbr: "AS", glow: "solar" }, aiHints: { role: "ranged" }, balanceNotes: "Long range, fragile.",
+    timings: { attackStartup: 140, attackActive: 120, attackRecovery: 240, specialStartup: 240, specialActive: 100, specialRecovery: 260 },
+  },
+  SD: {
+    id: "SD", name: "Shield Drone", displayName: "Shield Drone", faction: FACTIONS.SOLAR, alignment: ALIGNMENTS[FACTIONS.SOLAR], isCommandUnit: false,
+    maxHp: 120, speed: 145, attackDamage: 10, attackRange: 250, attackCooldown: 0.64, projectile: true,
+    boardMovement: { type: "ortho", maxSteps: 2 }, boardAbility: null, duelSpecial: "Temporary barrier", specialCooldown: 4,
+    visual: { shape: "tank", abbr: "SD", glow: "solar" }, aiHints: { role: "defender" }, balanceNotes: "Defensive ranged unit.",
+    timings: { attackStartup: 120, attackActive: 110, attackRecovery: 220, specialStartup: 80, specialActive: 2200, specialRecovery: 200 },
+  },
+  PM: {
+    id: "PM", name: "Pulse Medic", displayName: "Pulse Medic", faction: FACTIONS.SOLAR, alignment: ALIGNMENTS[FACTIONS.SOLAR], isCommandUnit: false,
+    maxHp: 78, speed: 178, attackDamage: 8, attackRange: 260, attackCooldown: 0.48, projectile: true,
+    boardMovement: { type: "ortho", maxSteps: 2 }, boardAbility: "repairAdjacentAlly", duelSpecial: "Pulse self-repair burst", specialCooldown: 4,
+    visual: { shape: "orb", abbr: "PM", glow: "solar" }, aiHints: { role: "support" }, balanceNotes: "Support and sustain.",
+    timings: { attackStartup: 100, attackActive: 120, attackRecovery: 200, specialStartup: 90, specialActive: 320, specialRecovery: 200 },
+  },
+  NW: {
+    id: "NW", name: "Nova Walker", displayName: "Nova Walker", faction: FACTIONS.SOLAR, alignment: ALIGNMENTS[FACTIONS.SOLAR], isCommandUnit: false,
+    maxHp: 148, speed: 123, attackDamage: 24, attackRange: 96, attackCooldown: 0.86, projectile: false,
+    boardMovement: { type: "heavy", maxSteps: 2 }, boardAbility: null, duelSpecial: "Area blast", specialCooldown: 6,
+    visual: { shape: "tank", abbr: "NW", glow: "solar" }, aiHints: { role: "heavy" }, balanceNotes: "Slow heavy attacker.",
+    timings: { attackStartup: 170, attackActive: 120, attackRecovery: 280, specialStartup: 240, specialActive: 200, specialRecovery: 280 },
+  },
+  NO: {
+    id: "NO", name: "Null Overlord", displayName: "Null Overlord", faction: FACTIONS.VOID, alignment: ALIGNMENTS[FACTIONS.VOID], isCommandUnit: true,
+    maxHp: 130, speed: 154, attackDamage: 16, attackRange: 88, attackCooldown: 0.58, projectile: false,
+    boardMovement: { type: "king", maxSteps: 1 }, boardAbility: null, duelSpecial: "Temporary damage aura", specialCooldown: 5,
+    visual: { shape: "hex", abbr: "NO", glow: "void" }, aiHints: { role: "balanced", protectCommand: true }, balanceNotes: "Command unit with aura.",
+    timings: { attackStartup: 100, attackActive: 100, attackRecovery: 180, specialStartup: 110, specialActive: 3000, specialRecovery: 260 },
+  },
+  RC: {
+    id: "RC", name: "Razor Crawler", displayName: "Razor Crawler", faction: FACTIONS.VOID, alignment: ALIGNMENTS[FACTIONS.VOID], isCommandUnit: false,
+    maxHp: 86, speed: 246, attackDamage: 18, attackRange: 60, attackCooldown: 0.43, projectile: false,
+    boardMovement: { type: "runner", maxSteps: 3 }, boardAbility: null, duelSpecial: "Leap strike", specialCooldown: 4,
+    visual: { shape: "pentagon", abbr: "RC", glow: "void" }, aiHints: { role: "melee" }, balanceNotes: "Fast melee pressure.",
+    timings: { attackStartup: 70, attackActive: 90, attackRecovery: 160, specialStartup: 70, specialActive: 200, specialRecovery: 220 },
+  },
+  EC: {
+    id: "EC", name: "Entropy Cannon", displayName: "Entropy Cannon", faction: FACTIONS.VOID, alignment: ALIGNMENTS[FACTIONS.VOID], isCommandUnit: false,
+    maxHp: 92, speed: 128, attackDamage: 22, attackRange: 430, attackCooldown: 0.92, projectile: true,
+    boardMovement: { type: "line", maxSteps: 4 }, boardAbility: null, duelSpecial: "Slow high-power shot", specialCooldown: 6,
+    visual: { shape: "diamond", abbr: "EC", glow: "void" }, aiHints: { role: "ranged" }, balanceNotes: "Slow artillery.",
+    timings: { attackStartup: 180, attackActive: 140, attackRecovery: 280, specialStartup: 220, specialActive: 120, specialRecovery: 280 },
+  },
+  GW: {
+    id: "GW", name: "Glitch Wraith", displayName: "Glitch Wraith", faction: FACTIONS.VOID, alignment: ALIGNMENTS[FACTIONS.VOID], isCommandUnit: false,
+    maxHp: 72, speed: 265, attackDamage: 13, attackRange: 225, attackCooldown: 0.46, projectile: true,
+    boardMovement: { type: "phase", maxSteps: 3 }, boardAbility: "phaseThroughOneOccupied", duelSpecial: "Short invisibility teleport dodge", specialCooldown: 4,
+    visual: { shape: "orb", abbr: "GW", glow: "void" }, aiHints: { role: "evasive" }, balanceNotes: "Evasive mobile disruptor.",
+    timings: { attackStartup: 80, attackActive: 100, attackRecovery: 190, specialStartup: 70, specialActive: 1600, specialRecovery: 220 },
+  },
+  CB: {
+    id: "CB", name: "Corruptor Bot", displayName: "Corruptor Bot", faction: FACTIONS.VOID, alignment: ALIGNMENTS[FACTIONS.VOID], isCommandUnit: false,
+    maxHp: 84, speed: 170, attackDamage: 10, attackRange: 260, attackCooldown: 0.52, projectile: true,
+    boardMovement: { type: "ortho", maxSteps: 2 }, boardAbility: "weakenAdjacentEnemy", duelSpecial: "Erratic shot burst", specialCooldown: 4,
+    visual: { shape: "orb", abbr: "CB", glow: "void" }, aiHints: { role: "support" }, balanceNotes: "Debuff support.",
+    timings: { attackStartup: 95, attackActive: 110, attackRecovery: 210, specialStartup: 100, specialActive: 320, specialRecovery: 220 },
+  },
+  GB: {
+    id: "GB", name: "Gravity Bruiser", displayName: "Gravity Bruiser", faction: FACTIONS.VOID, alignment: ALIGNMENTS[FACTIONS.VOID], isCommandUnit: false,
+    maxHp: 160, speed: 116, attackDamage: 24, attackRange: 92, attackCooldown: 0.84, projectile: false,
+    boardMovement: { type: "heavy", maxSteps: 2 }, boardAbility: null, duelSpecial: "Gravity pull", specialCooldown: 5,
+    visual: { shape: "tank", abbr: "GB", glow: "void" }, aiHints: { role: "heavy" }, balanceNotes: "Heavy control tank.",
+    timings: { attackStartup: 170, attackActive: 120, attackRecovery: 290, specialStartup: 120, specialActive: 2500, specialRecovery: 220 },
+  },
+};
+
+export const INITIAL_VOID_ROW = ["EC", "RC", "GW", "CB", "NO", "GB", "RC", "EC", "GW"];
+export const INITIAL_SOLAR_ROW = ["AS", "PS", "SD", "PM", "CC", "NW", "PS", "AS", "SD"];

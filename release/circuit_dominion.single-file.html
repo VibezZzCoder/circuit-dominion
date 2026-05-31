@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<!--
+Circuit Dominion
+
+Copyright (C) 2026 E RM
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+License: GPL-3.0-or-later
+Full license text: see LICENSE in the project repository.
+-->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<!--
+Submission Info
+
+Exact prompt used:
+Create a complete browser game inspired by the gameplay structure of classic board-strategy/action-duel games like Archon, but with an original AI robots theme, original units, original names, original visuals, and no copyrighted assets.
+
+The game must be delivered as a SINGLE self-contained `.html` file under 3 MB. It must run locally in a browser with no server, no build step, no external libraries, no remote images, no remote fonts, and no remote audio. All visuals must be created using HTML/CSS/Canvas/SVG generated in the file. Audio, if included, must be generated using the Web Audio API only.
+
+Game concept:
+Title: “Circuit Dominion” or another original robot-themed title.
+Theme: Two rival AI robot networks battle for control of a tactical energy grid. One side is “Solar Protocol,” using clean bright energy and agile precision robots. The other side is “Void Core,” using dark matter, corrupted code, and heavy destructive machines.
+
+Core gameplay:
+Create a 9x9 tactical board. Two players take turns moving robot units on the board. When one unit moves onto a square occupied by an enemy, the game switches into a real-time combat arena where the two units fight directly. The winner survives and occupies the contested board square. The loser is removed from the board.
+
+The game should feel like a hybrid of chess-like strategy and arcade combat, but all content, names, art, balance, and presentation must be original.
+
+Important design goals:
+- Easy to understand within 30 seconds.
+- Fast matches, around 5–10 minutes.
+- Playable with mouse, keyboard, and touch.
+- Mobile-friendly layout.
+- Smooth performance on modern phones and desktops.
+- No external dependencies.
+- Self-contained single HTML file.
+- Under 3 MB total file size.
+
+Board design:
+- Use a 9x9 grid.
+- Squares belong to one of three energy types:
+  1. Light Grid
+  2. Dark Grid
+  3. Neutral Grid
+- Some squares should gradually shift polarity over time or every few turns.
+- Light-aligned robots are stronger on Light Grid squares.
+- Dark-aligned robots are stronger on Dark Grid squares.
+- Neutral squares give no bonus.
+- Show square polarity visually using simple colors, glow, icons, or patterns.
+- Include several special “Power Nodes” on the board. Controlling all Power Nodes is one way to win.
+
+Win conditions:
+A player wins by either:
+1. Destroying the enemy Command Unit, or
+2. Occupying all Power Nodes at the end of their turn.
+
+Turn-based board rules:
+- Player 1 and Player 2 alternate turns.
+- A unit can move once per turn.
+- Units have different movement styles.
+- Legal moves should be highlighted after selecting a unit.
+- Invalid moves should give clear feedback.
+- Units cannot move through other units unless their ability says otherwise.
+- Moving onto an enemy starts a duel.
+- After a duel, return to the board state.
+- Include a clear turn indicator.
+
+Suggested robot units:
+Solar Protocol side:
+1. Core Commander
+   - The king-like unit. Losing it loses the game.
+   - Moderate speed, moderate attack.
+   - Special: short defensive shield burst in duels.
+2. Photon Striker
+   - Fast melee robot.
+   - Moves like a fast skirmisher.
+   - Special: dash attack.
+3. Arc Sniper
+   - Long-range fragile robot.
+   - Special: charged laser shot.
+4. Shield Drone
+   - Defensive robot.
+   - Special: temporary barrier.
+5. Pulse Medic
+   - Support robot.
+   - On the board, can repair adjacent allied units slightly once per turn.
+   - In combat, fires weak pulse shots.
+6. Nova Walker
+   - Heavy assault robot.
+   - Slow, strong.
+   - Special: area blast with cooldown.
+
+Void Core side:
+1. Null Overlord
+   - Command Unit.
+   - Losing it loses the game.
+   - Special: temporary damage aura.
+2. Razor Crawler
+   - Fast melee robot.
+   - Special: leap strike.
+3. Entropy Cannon
+   - Long-range heavy shooter.
+   - Special: slow but powerful projectile.
+4. Glitch Wraith
+   - Mobile evasive unit.
+   - Can phase through one occupied square on the board.
+   - Special: short invisibility/teleport dodge.
+5. Corruptor Bot
+   - Support robot.
+   - Can weaken an adjacent enemy unit on the board.
+   - In combat, fires erratic shots.
+6. Gravity Bruiser
+   - Heavy tank robot.
+   - Special: pulls opponent slightly toward itself.
+
+Unit stats:
+Each unit should have:
+- HP
+- Speed
+- Attack damage
+- Projectile or melee range
+- Cooldown
+- Board movement pattern
+- Faction alignment: Light or Dark
+
+Energy square modifiers:
+During duel combat, apply a simple bonus based on the board square where the battle occurs:
+- Light unit on Light Grid: +15% damage or +15% max HP.
+- Dark unit on Dark Grid: +15% damage or +15% max HP.
+- Opposite alignment on hostile grid: slight penalty, such as -10% damage.
+- Neutral Grid: no modifier.
+Show this clearly before or during combat.
+
+Combat arena:
+When a battle begins:
+- Display a compact real-time arena.
+- Each unit appears as a simple robot sprite or geometric icon.
+- Player 1 controls:
+  - Keyboard: WASD to move, Space or F to attack, Shift for special.
+  - Touch: virtual joystick or touch-drag movement, attack button, special button.
+- Player 2 controls:
+  - Keyboard: Arrow keys to move, Enter or / to attack, Right Shift for special.
+  - Touch: if same-device two-player touch is difficult, provide an optional “AI controls Player 2 in duel” toggle.
+- Include a simple AI option so one human can play against the computer.
+- Units should have different attacks:
+  - Melee units need proximity.
+  - Ranged units fire projectiles.
+  - Heavy units move slowly but hit harder.
+  - Support units are weaker but have useful abilities.
+- Include health bars, cooldown indicators, and a short countdown before combat starts.
+- The duel ends when one unit reaches 0 HP.
+- The surviving unit returns to the board.
+- If both units are destroyed, the contested square becomes empty.
+
+AI opponent:
+Include a basic computer opponent for board turns and duels.
+Board AI should:
+- Prefer attacks it is likely to win.
+- Protect its Command Unit.
+- Try to capture Power Nodes.
+- Prefer favorable square polarity.
+- Avoid obviously bad moves.
+Duel AI should:
+- Move toward or away depending on unit type.
+- Fire when in range.
+- Use specials occasionally.
+- Dodge projectiles somewhat.
+
+Controls:
+Include:
+- Mouse controls for selecting units and board squares.
+- Keyboard controls for combat.
+- Touch controls for mobile.
+- Large buttons for attack/special on mobile.
+- Responsive layout that works in portrait and landscape.
+- A simple help overlay explaining controls.
+
+UI requirements:
+- Title screen with:
+  - New Game
+  - Player vs Player
+  - Player vs AI
+  - How to Play
+- Board screen with:
+  - Current turn
+  - Selected unit info
+  - Legal move highlights
+  - Power Node ownership
+  - Win condition reminder
+- Combat screen with:
+  - Unit names
+  - Health bars
+  - Energy square modifier
+  - Countdown
+  - Cooldown indicators
+- End screen with:
+  - Winner
+  - Reason for victory
+  - Restart button
+
+Visual style:
+- Futuristic neon robot theme.
+- Clean readable board.
+- Use Canvas or SVG for simple robot icons.
+- Do not use remote images.
+- Do not use copyrighted characters, logos, names, sprites, or sounds.
+- Units should be visually distinguishable by silhouette, color, and icon.
+- Add lightweight effects such as glows, sparks, scanlines, projectile trails, or explosions, but keep file size small.
+
+Audio:
+- Optional, but if included, generate sounds using the Web Audio API.
+- Include simple sounds for:
+  - Move
+  - Invalid move
+  - Attack
+  - Hit
+  - Special ability
+  - Victory
+- Include mute button.
+- No external audio files.
+
+Technical requirements:
+- Output one complete `.html` file only.
+- Include all HTML, CSS, and JavaScript in the same file.
+- No external scripts.
+- No remote assets.
+- No frameworks.
+- Must work by opening the file directly in a browser.
+- Keep total file size under 3 MB.
+- Use efficient code and compact procedural visuals.
+- Use requestAnimationFrame for combat animation.
+- Keep game state organized in clear JavaScript objects.
+- Include comments for major systems.
+- Avoid overly large embedded data.
+- Do not include base64 images or large assets unless absolutely tiny.
+
+Game balance:
+- Make every unit useful.
+- Make Command Units important but not helpless.
+- Make Power Nodes strategically valuable.
+- Make square polarity matter without making fights automatic.
+- Keep duel times short, ideally 10–30 seconds.
+- Avoid one-shot kills except maybe rare charged specials.
+- Add cooldowns to powerful abilities.
+
+Accessibility and usability:
+- Use readable font sizes.
+- High contrast UI.
+- Buttons large enough for touch.
+- Include pause/help.
+- Include visual feedback for all important actions.
+- Do not rely on color alone; use icons or labels for Light/Dark/Neutral where possible.
+
+Deliverable:
+Return the full contents of the single `.html` file. Do not split into multiple files. Do not include external dependencies. Do not provide placeholder comments like “add game logic here”; implement the actual playable game.
+
+Submission checklist
+
+    Single `.html` file only, under 3 MB.
+    Prompt and shared chat link included exactly as used.
+    Self-contained visuals and audio only. No remote assets.
+    Touch-friendly input strongly recommended for mobile traffic.
+
+Also include, inside an HTML comment near the top of the file, a section labeled “Submission Info” containing:
+- The exact prompt used.
+- A placeholder line for the shared chat link: SHARED_CHAT_LINK_HERE
+- The checklist above exactly as written.
+
+Before final output, verify:
+- The game starts without errors.
+- The board is playable.
+- Units can move.
+- Combat starts when attacking.
+- Combat resolves and returns to the board.
+- At least one win condition works.
+- No remote assets are referenced.
+- The file is self-contained.
+
+Shared chat link:
+SHARED_CHAT_LINK_HERE
+
+Checklist:
+Submission checklist
+
+    Single `.html` file only, under 3 MB.
+    Prompt and shared chat link included exactly as used.
+    Self-contained visuals and audio only. No remote assets.
+    Touch-friendly input strongly recommended for mobile traffic.
+-->
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Circuit Dominion</title>
+<style>
+:root{--bg:#071019;--panel:#0c1724e8;--line:#2af6ff66;--txt:#e9fbff;--muted:#94a9bd;--solar:#6dfcff;--void:#d56bff;--warn:#ffdc63;--bad:#ff5f7a;--good:#7dff96}
+*{box-sizing:border-box;touch-action:manipulation}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 15% 10%,#173557,#071019 48%,#04070d);color:var(--txt);font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+body:before{content:"";position:fixed;inset:0;background:linear-gradient(#ffffff06 50%,#0000 50%);background-size:100% 4px;pointer-events:none;mix-blend-mode:screen;opacity:.22}
+button,input{font:inherit}
+button{border:1px solid var(--line);background:linear-gradient(180deg,#10283b,#08131e);color:var(--txt);border-radius:12px;padding:11px 15px;min-height:44px;cursor:pointer;box-shadow:0 0 14px #00eaff22 inset,0 0 12px #0008}
+button:hover,button:focus{outline:2px solid #7dffff66;background:#13324b}
+button.primary{border-color:#7dffff;background:linear-gradient(180deg,#14556a,#092231);box-shadow:0 0 18px #2af6ff55}
+button.void{border-color:#e57cff;background:linear-gradient(180deg,#32164f,#180b27);box-shadow:0 0 18px #c35cff55}
+label{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:14px}
+.screen{display:none;height:100%;width:100%;padding:14px;position:relative}
+.screen.active{display:flex}
+#titleScreen,#endScreen{align-items:center;justify-content:center;text-align:center}
+.hero{max-width:760px;width:min(94vw,760px);padding:28px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(145deg,#0e1b2eea,#080d16ed);box-shadow:0 0 50px #22f2ff22,0 0 90px #ad55ff16}
+h1{font-size:clamp(36px,8vw,76px);margin:0 0 8px;letter-spacing:.06em;text-transform:uppercase;text-shadow:0 0 18px #35f4ff,0 0 34px #8e44ff}
+.tagline{color:#c9ecff;margin:0 auto 22px;line-height:1.45;max-width:650px}
+.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:18px 0}
+.small{font-size:13px;color:var(--muted)}
+#boardScreen{gap:12px;align-items:stretch}
+.leftPane{flex:1;display:flex;align-items:center;justify-content:center;min-width:0}
+.boardWrap{width:min(82vh,calc(100vw - 340px));max-width:720px;aspect-ratio:1;border-radius:18px;border:1px solid var(--line);box-shadow:0 0 32px #00eaff22;background:#020610;padding:8px}
+#board{width:100%;height:100%;display:block;border-radius:12px;cursor:pointer;background:#081018}
+.sidePane{width:315px;display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+.card{border:1px solid #2af6ff44;background:var(--panel);border-radius:16px;padding:10px;box-shadow:0 0 20px #0008}
+.card h2,.card h3{margin:0 0 8px;font-size:18px}
+.status{font-size:16px;line-height:1.35}
+#turnBadge{font-weight:bold;font-size:20px}
+.solarText{color:var(--solar);text-shadow:0 0 8px #6dfcff77}
+.voidText{color:var(--void);text-shadow:0 0 8px #d56bff77}
+#selectedInfo{white-space:pre-line;line-height:1.35;min-height:96px}
+#nodeInfo,#log{font-size:14px;line-height:1.35;color:#d7f5ff}
+#log{min-height:38px;color:var(--warn)}
+.legend{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px;color:#d7f5ff}
+.pill{border:1px solid #ffffff33;border-radius:999px;padding:5px 7px;text-align:center;background:#ffffff08;display:inline-flex;align-items:center;justify-content:center;min-height:28px}
+#nodeInfo{display:flex;flex-wrap:wrap;gap:6px}
+#combatScreen{flex-direction:column;gap:8px;padding:10px}
+.combatTop{display:grid;grid-template-columns:1fr minmax(120px,260px) 1fr;gap:10px;align-items:stretch}
+.fighterPanel{border:1px solid #ffffff33;border-radius:14px;padding:8px;background:#07111ddd}
+.fighterName{font-weight:bold;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hpBox,.cdBox{height:14px;background:#0009;border:1px solid #ffffff33;border-radius:999px;overflow:hidden;margin-top:7px}
+.hpFill{height:100%;width:100%;background:linear-gradient(90deg,#ff5f7a,#ffdc63,#7dff96);transition:width .1s}
+.cdFill{height:100%;width:0;background:linear-gradient(90deg,#2af6ff,#e57cff);transition:width .08s}
+.centerPanel{text-align:center;border:1px solid #ffffff33;border-radius:14px;padding:8px;background:#07111ddd;font-size:14px}
+#arenaWrap{position:relative;flex:1;min-height:260px;border-radius:18px;border:1px solid var(--line);box-shadow:0 0 28px #00eaff22;overflow:hidden;background:#02060c}
+#arena{display:block;width:100%;height:100%;touch-action:none}
+.countdown{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-size:clamp(42px,12vw,120px);font-weight:bold;text-shadow:0 0 20px #2af6ff,0 0 40px #d56bff;pointer-events:none}
+.touchControls{display:grid;grid-template-columns:1fr auto auto 1fr auto auto;gap:8px;align-items:center;padding:4px 0}
+.touchControls.singlePlayer{grid-template-columns:minmax(180px,1fr) auto auto}
+.stick{height:72px;border:1px solid #ffffff33;border-radius:18px;background:radial-gradient(circle,#ffffff13,#0005);position:relative;min-width:90px;touch-action:none;user-select:none}
+.stick:before{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px;border-radius:50%;background:#ffffff33;box-shadow:0 0 14px #fff6}
+.bigBtn{min-width:74px;height:58px}
+#helpOverlay{display:none;position:fixed;inset:0;z-index:30;background:#02060ce8;align-items:center;justify-content:center;padding:18px}
+#helpOverlay.active{display:flex}
+.helpBox{max-width:760px;width:min(760px,calc(100vw - 36px));max-height:calc(100dvh - 36px);overflow:auto;border:1px solid var(--line);border-radius:22px;background:#0a1522;padding:20px;line-height:1.45;box-shadow:0 0 60px #00eaff33}
+#closeHelp{position:sticky;bottom:0;margin-top:14px}
+.helpGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.kbd{display:inline-block;border:1px solid #ffffff55;background:#0008;border-radius:6px;padding:2px 6px;margin:1px;color:#fff}
+.hidden{display:none!important}
+@media(max-width:900px){#boardScreen{flex-direction:column;padding:8px;overflow:auto}.boardWrap{width:min(96vw,72vh);margin:auto}.sidePane{width:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}.sidePane .card:last-child{grid-column:1/-1}body{overflow:auto}.screen{min-height:100%;height:auto}}
+@media(max-width:620px){.sidePane{display:flex}.combatTop{grid-template-columns:1fr;gap:6px}.touchControls{grid-template-columns:1fr auto auto;grid-auto-rows:auto}#stick2,.p2touch{display:none}.hero{padding:18px}}
+</style>
+</head>
+<body>
+<section id="titleScreen" class="screen active">
+  <div class="hero">
+    <h1>Circuit Dominion</h1>
+    <p class="tagline">Solar Protocol and Void Core fight across a shifting 9×9 energy grid. Move like a board tactician, then settle captures in a real-time robot duel.</p>
+    <div class="menu">
+      <button class="primary" id="newAI">Player vs AI<br><span class="small">Recommended start</span></button>
+      <button id="newPVP">Player vs Player<br><span class="small">Local controls</span></button>
+      <button class="void" id="newAI2">Practice vs AI<br><span class="small">Same rules</span></button>
+      <button id="howBtn">How to Play</button>
+    </div>
+    <label style="justify-content:center"><input type="checkbox" id="duelAIToggle" checked> AI controls Void Core during duels</label>
+    <p class="small">No external assets. Visuals use Canvas/CSS. Sounds are generated with Web Audio.</p>
+  </div>
+</section>
+
+<section id="boardScreen" class="screen">
+  <div class="leftPane"><div class="boardWrap"><canvas id="board" width="900" height="900" aria-label="Circuit Dominion tactical board"></canvas></div></div>
+  <aside class="sidePane">
+    <div class="card status"><h2>Turn</h2><div id="turnBadge"></div><div id="modeLabel" class="small"></div></div>
+    <div class="card"><h3>Selected Unit</h3><div id="selectedInfo">Select one of your robots.</div></div>
+    <div class="card"><h3>Power Nodes</h3><div id="nodeInfo"></div></div>
+    <div class="card"><h3>Grid Key</h3><div class="legend"><span class="pill">☀ L Light</span><span class="pill">◇ N Neutral</span><span class="pill">◆ D Dark</span></div><p class="small">White = selected. Green = legal move. Red = attack. Win by destroying the enemy Command Unit or occupying all ⚡ Power Nodes at turn end.</p></div>
+    <div class="card"><div id="log">Ready.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button id="boardHelp">Help</button><button id="muteBtn">Mute</button><button id="restartBtn">Restart</button></div></div>
+  </aside>
+</section>
+
+<section id="combatScreen" class="screen">
+  <div class="combatTop">
+    <div class="fighterPanel"><div class="fighterName" id="p1Name"></div><div class="hpBox"><div class="hpFill" id="p1HP"></div></div><div class="cdBox"><div class="cdFill" id="p1CD"></div></div><div class="small" id="p1Hint">WASD · Space/F attack · Left Shift special</div></div>
+    <div class="centerPanel"><b>Duel Zone</b><div class="small">Combat modifier</div><div id="modText"></div><div id="combatMsg" class="small"></div><button id="pauseBtn" style="margin-top:5px;min-height:34px;padding:5px 10px">Pause</button></div>
+    <div class="fighterPanel"><div class="fighterName" id="p2Name"></div><div class="hpBox"><div class="hpFill" id="p2HP"></div></div><div class="cdBox"><div class="cdFill" id="p2CD"></div></div><div class="small" id="p2Hint">Arrows · Enter or / attack · Right Shift special</div></div>
+  </div>
+  <div id="arenaWrap"><canvas id="arena" width="960" height="520" aria-label="Real time robot duel arena"></canvas><div id="countdown" class="countdown"></div></div>
+  <div class="touchControls" id="touchControls">
+    <div class="stick" id="stick1" aria-label="Player 1 movement joystick"></div><button class="bigBtn" id="atk1">P1 Attack</button><button class="bigBtn" id="sp1">P1 Special</button>
+    <div class="stick" id="stick2" aria-label="Player 2 movement joystick"></div><button class="bigBtn p2touch" id="atk2">P2 Attack</button><button class="bigBtn p2touch" id="sp2">P2 Special</button>
+  </div>
+</section>
+
+<section id="endScreen" class="screen">
+  <div class="hero"><h1 id="winnerTitle">Victory</h1><p id="winnerReason" class="tagline"></p><div class="menu"><button class="primary" id="endRestartAI">Restart vs AI</button><button id="endRestartPVP">Restart PvP</button><button id="endHelp">How to Play</button></div></div>
+</section>
+
+<div id="helpOverlay">
+  <div class="helpBox">
+    <h2>Circuit Dominion: quick rules</h2>
+    <div class="helpGrid">
+      <div><h3>Board</h3><p>Select one of your robots, then choose a highlighted square. Moving onto an enemy starts a duel. Robots cannot pass through other robots except the Glitch Wraith, which may phase through one occupied square.</p></div>
+      <div><h3>Win</h3><p>Destroy the enemy Command Unit, or occupy every ⚡ Power Node at the end of your turn.</p></div>
+      <div><h3>Energy</h3><p>Light robots gain +15% HP and damage on ☀ Light Grid squares. Dark robots gain the same on ◆ Dark Grid squares. Hostile polarity gives -10% damage. ◇ Neutral is safe.</p></div>
+      <div><h3>Combat controls</h3><p>Solar / P1: <span class="kbd">WASD</span> move, <span class="kbd">Space/F</span> attack, <span class="kbd">Left Shift</span> special. Void / P2: <span class="kbd">Arrows</span> move, <span class="kbd">Enter or /</span> attack, <span class="kbd">Right Shift</span> special. In Player vs AI, Solar is always human-controlled in duels, even when Void attacks first.</p></div>
+      <div><h3>Board abilities</h3><p>Pulse Medic can click an adjacent ally to repair it. Corruptor Bot can click an adjacent enemy to weaken it. These actions consume the turn.</p></div>
+      <div><h3>Tip</h3><p>Use favorable polarity and Power Nodes to force the opponent into risky duels.</p></div>
+    </div>
+    <button id="closeHelp" class="primary">Close</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* Major systems: game state, board movement, board AI, combat arena, duel AI, canvas drawing, touch controls, procedural audio. */
+const $=id=>document.getElementById(id), screens=['titleScreen','boardScreen','combatScreen','endScreen'];
+const F={S:'Solar Protocol',V:'Void Core'}, Align={S:'Light',V:'Dark'}, EN=['N','L','D'], NODES=[[2,2],[2,6],[4,4],[6,2],[6,6]];
+let G, selected=null, legal=[], msgTimer=0, keys={}, muted=false, audioCtx=null, raf=0, aiDelay=0;
+const defs={
+  CC:{name:'Core Commander',abbr:'CC',f:'S',cmd:1,hp:125,spd:168,dmg:15,range:86,cd:.56,sp:.34,move:'king',m:1,desc:'Command. Shield burst.'},
+  PS:{name:'Photon Striker',abbr:'PS',f:'S',hp:82,spd:255,dmg:18,range:58,cd:.42,sp:.24,move:'runner',m:3,desc:'Fast melee. Dash attack.'},
+  AS:{name:'Arc Sniper',abbr:'AS',f:'S',hp:70,spd:178,dmg:16,range:470,cd:.72,sp:.16,move:'line',m:4,desc:'Long range. Charged laser.'},
+  SD:{name:'Shield Drone',abbr:'SD',f:'S',hp:120,spd:145,dmg:10,range:250,cd:.64,sp:.30,move:'ortho',m:2,desc:'Defender. Barrier.'},
+  PM:{name:'Pulse Medic',abbr:'PM',f:'S',hp:78,spd:178,dmg:8,range:260,cd:.48,sp:.32,move:'ortho',m:2,desc:'Repairs adjacent ally.'},
+  NW:{name:'Nova Walker',abbr:'NW',f:'S',hp:148,spd:123,dmg:24,range:96,cd:.86,sp:.15,move:'heavy',m:2,desc:'Heavy. Area blast.'},
+  NO:{name:'Null Overlord',abbr:'NO',f:'V',cmd:1,hp:130,spd:154,dmg:16,range:88,cd:.58,sp:.33,move:'king',m:1,desc:'Command. Damage aura.'},
+  RC:{name:'Razor Crawler',abbr:'RC',f:'V',hp:86,spd:246,dmg:18,range:60,cd:.43,sp:.24,move:'runner',m:3,desc:'Fast melee. Leap strike.'},
+  EC:{name:'Entropy Cannon',abbr:'EC',f:'V',hp:92,spd:128,dmg:22,range:430,cd:.92,sp:.16,move:'line',m:4,desc:'Heavy shooter.'},
+  GW:{name:'Glitch Wraith',abbr:'GW',f:'V',hp:72,spd:265,dmg:13,range:225,cd:.46,sp:.30,move:'phase',m:3,desc:'Phases through one robot.'},
+  CB:{name:'Corruptor Bot',abbr:'CB',f:'V',hp:84,spd:170,dmg:10,range:260,cd:.52,sp:.30,move:'ortho',m:2,desc:'Weakens adjacent enemy.'},
+  GB:{name:'Gravity Bruiser',abbr:'GB',f:'V',hp:160,spd:116,dmg:24,range:92,cd:.84,sp:.16,move:'heavy',m:2,desc:'Heavy. Pull field.'}
+};
+function show(id){screens.forEach(s=>$(s).classList.toggle('active',s===id));}
+function start(mode='ai'){cancelAnimationFrame(raf);G={mode,turn:'S',units:[],board:[],phase:0,turns:1,screen:'board',paused:false};selected=null;legal=[];makeGrid();placeUnits();show('boardScreen');resizeBoard();log('Solar Protocol begins. Select a robot.');drawBoard();updateUI();}
+function makeGrid(){for(let r=0;r<9;r++){G.board[r]=[];for(let c=0;c<9;c++){let e='N'; if(r<3&&((r+c)%2||c==4))e='D'; if(r>5&&((r+c)%2||c==4))e='L'; if((r==4||c==4)&&(r+c)%2==0)e='N'; G.board[r][c]={e,base:e,shift:((r*7+c*5)%8===0)};}} NODES.forEach(([r,c])=>G.board[r][c].node=1);}
+function newUnit(type,r,c){let d=defs[type],u={id:type+Math.random().toString(36).slice(2,7),type,r,c,hp:d.hp,max:d.hp,used:false,weak:0};G.units.push(u);}
+function placeUnits(){['EC','RC','GW','CB','NO','GB','RC','EC','GW'].forEach((t,c)=>newUnit(t,0,c));['AS','PS','SD','PM','CC','NW','PS','AS','SD'].forEach((t,c)=>newUnit(t,8,c));}
+function unitAt(r,c){return G.units.find(u=>u.r===r&&u.c===c&&u.hp>0)}
+function def(u){return defs[u.type]}
+function sideName(s){return F[s]}
+function enemy(s){return s==='S'?'V':'S'}
+function inb(r,c){return r>=0&&r<9&&c>=0&&c<9}
+function dirs(type){let d8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]], d4=d8.slice(0,4); return type==='ortho'?d4:d8;}
+function moves(u){let d=def(u), out=[], canPhase=d.move==='phase', ds=d.move==='line'?dirs('all'):dirs(d.move), max=d.m; if(d.move==='king')max=1; if(d.move==='heavy'){ds=dirs('ortho'); max=2;}
+  for(const [dr,dc] of ds){let skipped=false; for(let s=1;s<=max;s++){let r=u.r+dr*s,c=u.c+dc*s;if(!inb(r,c))break;let o=unitAt(r,c); if(o){if(o.type&&def(o).f!==def(u).f)out.push({r,c,attack:1,target:o}); if(canPhase&&!skipped){skipped=true;continue} break;} else out.push({r,c});}}
+  if(d.move==='heavy'){for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]] ){let r=u.r+dr,c=u.c+dc;if(inb(r,c)){let o=unitAt(r,c); if(!o||def(o).f!==def(u).f)out.push({r,c,attack:!!o,target:o})}}}
+  return out;}
+function adjacent(a,b){return Math.max(Math.abs(a.r-b.r),Math.abs(a.c-b.c))===1}
+function selectable(u){return u&&def(u).f===G.turn&&(G.mode!=='ai'||G.turn==='S')}
+function log(t,bad=false){$('log').textContent=t;$('log').style.color=bad?'#ff8aa0':'#ffdc63';msgTimer=90; if(bad)beep('bad');}
+function updateUI(){let t=G.turn, cls=t==='S'?'solarText':'voidText';$('turnBadge').innerHTML=`<span class="${cls}">${sideName(t)}</span>`;$('modeLabel').textContent=G.mode==='ai'?'Player vs AI':'Player vs Player';
+  $('selectedInfo').textContent=selected?unitInfo(selected):'Select one of your robots.'; $('nodeInfo').innerHTML=nodeInfo();}
+function unitInfo(u){let d=def(u), e=G.board[u.r][u.c].e, hp=Math.max(0,Math.ceil(u.hp)); return `${d.name} (${d.abbr})\n${d.f==='S'?'Solar':'Void'} · ${Align[d.f]} align · HP ${hp}/${d.hp}\nMove: ${moveText(d)}\nAttack ${d.dmg} · ${d.range<120?'Melee':'Ranged'} · CD ${d.cd}s\nSquare: ${energyName(e)}${u.type==='PM'?'\nAbility: click adjacent ally to repair.':''}${u.type==='CB'?'\nAbility: click adjacent enemy to weaken.':''}`;}
+function moveText(d){return d.move==='king'?'1 any direction':d.move==='runner'?'up to 3 any direction':d.move==='phase'?'up to 3, phases once':d.move==='line'?'up to 4 any direction':d.move==='heavy'?'2 orthogonal or 1 diagonal':'up to 2 orthogonal';}
+function energyName(e){return e==='L'?'☀ Light Grid':e==='D'?'◆ Dark Grid':'◇ Neutral Grid'}
+function nodeInfo(){let s=NODES.map(([r,c],i)=>{let u=unitAt(r,c), owner=u?def(u).f:'-'; return `<span class="pill">⚡${i+1} ${owner==='S'?'Solar':owner==='V'?'Void':'Open'}</span>`}).join(' '); return s;}
+function endTurn(){selected=null;legal=[];checkWinNodes(); if(G.screen!=='board')return; G.turn=enemy(G.turn); G.turns++; if(G.turns%3===0)shiftGrid(); G.units.forEach(u=>{u.used=false;if(u.weak>0)u.weak--;}); updateUI();drawBoard(); if(G.mode==='ai'&&G.turn==='V'){log('Void Core calculating...'); aiDelay=25;}}
+function shiftGrid(){for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(G.board[r][c].shift){let i=EN.indexOf(G.board[r][c].e);G.board[r][c].e=EN[(i+1)%3];} log('Some unstable grid squares shifted polarity.');}
+function checkWinNodes(){let owner=null, ok=true; for(const [r,c] of NODES){let u=unitAt(r,c); if(!u){ok=false;break} let f=def(u).f; if(owner&&owner!==f){ok=false;break} owner=f;} if(ok&&owner)win(owner,'all Power Nodes were occupied at the end of the turn');}
+function checkCommand(){let s=G.units.some(u=>u.hp>0&&u.type==='CC'), v=G.units.some(u=>u.hp>0&&u.type==='NO'); if(!s&&!v)return drawGame('both Command Units were destroyed'); if(!s)return win('V','the Core Commander was destroyed'); if(!v)return win('S','the Null Overlord was destroyed');}
+function drawGame(reason){G.screen='end'; show('endScreen'); $('winnerTitle').textContent='Mutual Shutdown'; $('winnerTitle').className=''; $('winnerReason').textContent='No network prevails: '+reason+'.'; beep('win');}
+function win(side,reason){G.screen='end'; show('endScreen'); $('winnerTitle').textContent=sideName(side)+' Wins'; $('winnerTitle').className=side==='S'?'solarText':'voidText'; $('winnerReason').textContent='Victory reason: '+reason+'.'; beep('win');}
+function doBoardClick(r,c){if(G.screen!=='board'||(G.mode==='ai'&&G.turn==='V'))return; let u=unitAt(r,c); if(!selected){if(selectable(u)){selected=u;legal=moves(u);beep('move')} else log('Select one of your active robots.',true); updateUI();drawBoard();return;}
+  if(u&&def(u).f===G.turn&&u!==selected){selected=u;legal=moves(u);updateUI();drawBoard();return;}
+  if(boardAbility(selected,u))return;
+  let m=legal.find(x=>x.r===r&&x.c===c); if(!m){log('Invalid move for '+def(selected).name+'. Highlighted squares are legal.',true);drawBoard();return;}
+  if(m.attack)startDuel(selected,m.target,r,c); else {selected.r=r;selected.c=c;beep('move');log(def(selected).name+' moved to '+coord(r,c)+'.');endTurn();}
+}
+function boardAbility(a,b){if(!b||!adjacent(a,b))return false; let ad=def(a),bd=def(b); if(a.type==='PM'&&bd.f===ad.f&&b.hp<b.max){b.hp=Math.min(b.max,b.hp+18);beep('special');log('Pulse Medic repaired '+bd.name+'.');endTurn();return true;} if(a.type==='CB'&&bd.f!==ad.f){b.hp=Math.max(1,b.hp-10);b.weak=2;beep('special');log('Corruptor Bot weakened '+bd.name+'.');endTurn();return true;} return false;}
+function coord(r,c){return String.fromCharCode(65+c)+(r+1)}
+
+/* Board drawing and input */
+const bc=$('board'), bx=bc.getContext('2d');
+function resizeBoard(){let rect=bc.getBoundingClientRect(),dpr=devicePixelRatio||1; if(!rect.width||!rect.height)return; bc.width=rect.width*dpr;bc.height=rect.height*dpr;bx.setTransform(dpr,0,0,dpr,0,0);drawBoard();}
+function drawBoard(){if(!G||G.screen!=='board')return; let w=bc.clientWidth,h=bc.clientHeight,cell=Math.min(w,h)/9; bx.clearRect(0,0,w,h); bx.save(); bx.translate((w-cell*9)/2,(h-cell*9)/2);
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){let sq=G.board[r][c],x=c*cell,y=r*cell,gr=bx.createLinearGradient(x,y,x+cell,y+cell); if(sq.e==='L'){gr.addColorStop(0,'#113345');gr.addColorStop(1,'#1aefff22')} else if(sq.e==='D'){gr.addColorStop(0,'#1a0d27');gr.addColorStop(1,'#b43cff26')} else {gr.addColorStop(0,'#14202d');gr.addColorStop(1,'#11151c')} bx.fillStyle=gr; bx.fillRect(x,y,cell,cell); bx.strokeStyle='#ffffff18';bx.strokeRect(x+.5,y+.5,cell-1,cell-1); bx.fillStyle=sq.e==='L'?'#9effff99':sq.e==='D'?'#f0a0ff99':'#e8f4ff66'; bx.font=`${Math.max(11,cell*.18)}px Arial`; bx.fillText(sq.e,x+6,y+16); if(sq.shift){bx.strokeStyle='#ffdc6366';bx.setLineDash([4,4]);bx.strokeRect(x+5,y+5,cell-10,cell-10);bx.setLineDash([])} if(sq.node){bx.beginPath();bx.arc(x+cell*.5,y+cell*.5,cell*.16,0,7);bx.fillStyle='#ffdc6344';bx.fill();bx.strokeStyle='#ffdc63';bx.stroke();bx.fillStyle='#fff0a0';bx.font=`${cell*.26}px Arial`;bx.textAlign='center';bx.textBaseline='middle';bx.fillText('⚡',x+cell*.5,y+cell*.5);bx.textAlign='left';bx.textBaseline='alphabetic';} }
+  for(const m of legal){bx.fillStyle=m.attack?'#ff5f7a66':'#7dff9655'; bx.beginPath();bx.arc(m.c*cell+cell/2,m.r*cell+cell/2,cell*.31,0,7);bx.fill(); bx.strokeStyle=m.attack?'#ffb0bf':'#baffc7';bx.lineWidth=2;bx.stroke();}
+  if(selected){bx.strokeStyle='#fff';bx.lineWidth=3;bx.shadowColor='#fff';bx.shadowBlur=12;bx.strokeRect(selected.c*cell+3,selected.r*cell+3,cell-6,cell-6);bx.shadowBlur=0;}
+  for(const u of G.units)drawUnit(bx,u,u.c*cell+cell/2,u.r*cell+cell/2,cell*.36,cell); bx.restore();}
+function drawUnit(ctx,u,x,y,rad,cell){let d=def(u),solar=d.f==='S'; ctx.save();ctx.translate(x,y);ctx.shadowColor=solar?'#6dfcff':'#d56bff';ctx.shadowBlur=12;ctx.fillStyle=solar?'#102e3b':'#241032';ctx.strokeStyle=solar?'#6dfcff':'#d56bff';ctx.lineWidth=2;
+  if(u.type==='PS'||u.type==='RC'){poly(ctx,rad,5,Math.PI/2);} else if(u.type==='AS'||u.type==='EC'){ctx.rotate(Math.PI/4);ctx.fillRect(-rad*.8,-rad*.8,rad*1.6,rad*1.6);ctx.strokeRect(-rad*.8,-rad*.8,rad*1.6,rad*1.6);ctx.rotate(-Math.PI/4);} else if(u.type==='SD'||u.type==='GB'){roundRect(ctx,-rad,-rad*.72,rad*2,rad*1.44,8);ctx.fill();ctx.stroke();} else if(u.type==='PM'||u.type==='CB'){ctx.beginPath();ctx.arc(0,0,rad,0,7);ctx.fill();ctx.stroke();} else {poly(ctx,rad,6,Math.PI/6);}
+  ctx.shadowBlur=0; ctx.fillStyle='#e9fbff';ctx.font=`bold ${Math.max(10,cell*.18)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d.abbr,0,0); let w=rad*1.8;ctx.fillStyle='#000b';ctx.fillRect(-w/2,rad+4,w,4);ctx.fillStyle=solar?'#7dff96':'#ff7aa0';ctx.fillRect(-w/2,rad+4,w*Math.max(0,u.hp/u.max),4); if(u.weak>0){ctx.fillStyle='#ffdc63';ctx.font=`${Math.max(9,cell*.13)}px Arial`;ctx.fillText('WEAK',0,-rad-7);} ctx.restore();}
+function poly(ctx,r,n,rot){ctx.beginPath();for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.stroke();}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+bc.addEventListener('pointerdown',e=>{let rect=bc.getBoundingClientRect(),w=bc.clientWidth,h=bc.clientHeight,cell=Math.min(w,h)/9,ox=(w-cell*9)/2,oy=(h-cell*9)/2;let c=Math.floor((e.clientX-rect.left-ox)/cell),r=Math.floor((e.clientY-rect.top-oy)/cell);if(inb(r,c))doBoardClick(r,c);});
+window.addEventListener('resize',()=>{resizeBoard();resizeArena();});
+
+/* Board AI */
+function boardAI(){let best=null,bscore=-9999, units=G.units.filter(u=>def(u).f==='V'&&u.hp>0); for(const u of units){for(const m of moves(u)){let sc=scoreMove(u,m); if(sc>bscore||Math.random()<.07){best={u,m};bscore=sc;}}} if(!best){G.turn='S';updateUI();return} selected=best.u;legal=moves(best.u);drawBoard();setTimeout(()=>{if(G.screen!=='board')return; let m=best.m; if(m.attack)startDuel(best.u,m.target,m.r,m.c); else {best.u.r=m.r;best.u.c=m.c;beep('move');log('Void Core moved '+def(best.u).name+'.');endTurn();}},360);}
+function scoreMove(u,m){let d=def(u),e=G.board[m.r][m.c].e, sc=Math.random()*4; if(e==='D')sc+=7; if(e==='L')sc-=4; if(NODES.some(n=>n[0]===m.r&&n[1]===m.c))sc+=25; let cmd=G.units.find(x=>x.type==='NO'), dist=Math.abs(m.r-cmd.r)+Math.abs(m.c-cmd.c); if(d.cmd&&dist>2)sc-=10; let enemyCmd=G.units.find(x=>x.type==='CC'); sc+=(12-(Math.abs(m.r-enemyCmd.r)+Math.abs(m.c-enemyCmd.c)))*.9; if(m.attack){let td=def(m.target); sc+=td.cmd?999:35; sc+=(u.hp*d.dmg*d.range/1000)-(m.target.hp*td.dmg*td.range/1200); if(e==='D')sc+=8;if(e==='L')sc-=8; if(sc<10)sc-=18;} return sc;}
+
+/* Procedural audio */
+function beep(kind){if(muted)return; try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); let o=audioCtx.createOscillator(),g=audioCtx.createGain(),now=audioCtx.currentTime; o.type=kind==='bad'?'sawtooth':kind==='hit'?'square':'sine'; let f={move:440,bad:130,attack:620,hit:210,special:780,win:880}[kind]||440; o.frequency.setValueAtTime(f,now); if(kind==='win')o.frequency.exponentialRampToValueAtTime(f*1.5,now+.35); g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.08,now+.015);g.gain.exponentialRampToValueAtTime(.0001,now+(kind==='win'?.45:.12));o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+(kind==='win'?.5:.15));}catch(e){}}
+
+/* Combat system */
+const ac=$('arena'), ax=ac.getContext('2d'); let D=null, touches={p1:{x:0,y:0},p2:{x:0,y:0}};
+function resizeArena(){let rect=ac.getBoundingClientRect(),dpr=devicePixelRatio||1; if(!rect.width||!rect.height)return; ac.width=rect.width*dpr; ac.height=rect.height*dpr; ax.setTransform(dpr,0,0,dpr,0,0);}
+function energyMod(faction,e){if(e==='N')return {hp:1,dmg:1,text:'Neutral: no bonus'}; if((faction==='S'&&e==='L')||(faction==='V'&&e==='D'))return {hp:1.15,dmg:1.15,text:'+15% HP and damage on aligned grid'}; return {hp:1,dmg:.9,text:'-10% damage on hostile grid'};}
+function startDuel(att,defender,r,c){G.screen='combat'; selected=null;legal=[]; show('combatScreen');resizeArena(); let e=G.board[r][c].e; D={att,defender,tr:r,tc:c,from:{r:att.r,c:att.c},e,t0:performance.now(),last:performance.now(),count:3,done:false,paused:false,projectiles:[],fx:[],beams:[]}; D.f=[makeFighter(att,0,e),makeFighter(defender,1,e)]; $('p1Name').textContent=def(D.f[0].u).name+' · '+sideName(def(D.f[0].u).f); $('p2Name').textContent=def(D.f[1].u).name+' · '+sideName(def(D.f[1].u).f); $('modText').textContent=energyName(e)+' · '+modLine(D.f[0])+' · '+modLine(D.f[1]); $('combatMsg').textContent='Duel begins on '+coord(r,c)+'. Controls unlock after the countdown.'; updateDuelControls(); beep('attack'); raf=requestAnimationFrame(combatLoop);}
+function makeFighter(u,i,e){let d=def(u),m=energyMod(d.f,e),max=d.hp*m.hp,hp=Math.min(max,u.hp*m.hp); return {u,i,x:i?760:200,y:260,vx:0,vy:0,r:22,hp,max,dmg:d.dmg*m.dmg*(u.weak?0.88:1),spd:d.spd,range:d.range,cd:d.cd,atk:0,spc:0,spRate:d.sp,shield:0,aura:0,invis:0,pull:0,dash:0,mod:m};}
+function modLine(f){let d=def(f.u),m=f.mod.hp>1||f.mod.dmg>1?'+15% HP/damage':f.mod.dmg<1?'-10% damage':'no bonus'; return d.abbr+' '+m;}
+function controlFor(f){let side=def(f.u).f; if(G.mode==='ai')return side==='S'?'p1':'ai'; if($('duelAIToggle').checked&&side==='V')return 'ai'; return side==='S'?'p1':'p2';}
+function controlText(f){let side=sideName(def(f.u).f), role=controlFor(f); if(role==='ai')return side+' · Duel AI controls this robot'; return side+' · '+(role==='p1'?'WASD move · Space/F attack · Left Shift special':'Arrows move · Enter or / attack · Right Shift special');}
+function fighterFor(role){return D&&D.f.find(f=>controlFor(f)===role);}
+function hudPair(){let p1=fighterFor('p1')||(D&&D.f[0]); let p2=fighterFor('p2')||(D&&D.f.find(f=>f!==p1&&controlFor(f)==='ai'))||(D&&D.f.find(f=>f!==p1))||p1; return [p1,p2];}
+function updateDuelControls(){if(!D)return; let [p1,p2]=hudPair(),hasP2=D.f.some(f=>controlFor(f)==='p2'),touch=$('touchControls'); $('p1Name').textContent=def(p1.u).name+' · '+sideName(def(p1.u).f); $('p2Name').textContent=def(p2.u).name+' · '+sideName(def(p2.u).f); $('p1Hint').textContent=controlText(p1); $('p2Hint').textContent=controlText(p2); $('atk1').textContent=(p1?def(p1.u).abbr:'P1')+' Attack'; $('sp1').textContent=(p1?def(p1.u).abbr:'P1')+' Special'; $('atk2').textContent=(p2&&controlFor(p2)==='p2'?def(p2.u).abbr:'P2')+' Attack'; $('sp2').textContent=(p2&&controlFor(p2)==='p2'?def(p2.u).abbr:'P2')+' Special'; touch.classList.toggle('singlePlayer',!hasP2); $('stick2').hidden=!hasP2; $('atk2').hidden=!hasP2; $('sp2').hidden=!hasP2;}
+function combatLoop(now){if(!D)return; let dt=Math.min(.033,(now-D.last)/1000); D.last=now; if(!D.paused)updateCombat(dt,now); drawCombat(now); raf=requestAnimationFrame(combatLoop);}
+function updateCombat(dt,now){if(D.done)return; if(D.count>0){D.count=3-(now-D.t0)/1000; if(D.count<=0)$('combatMsg').textContent='Fight!'; return;}
+  for(const f of D.f){f.atk=Math.max(0,f.atk-dt);f.spc=Math.max(0,f.spc-dt);}
+  controlFighter(D.f[0],D.f[1],dt,controlFor(D.f[0])); controlFighter(D.f[1],D.f[0],dt,controlFor(D.f[1]));
+  for(const f of D.f){f.x=Math.max(26,Math.min(934,f.x+f.vx*dt)); f.y=Math.max(28,Math.min(492,f.y+f.vy*dt)); f.vx*=.86; f.vy*=.86; if(f.aura>now&&dist(f,D.f[1-f.i])<105)damage(D.f[1-f.i],10*dt,f); if(f.pull>now){let o=D.f[1-f.i],a=Math.atan2(f.y-o.y,f.x-o.x);o.vx+=Math.cos(a)*105*dt;o.vy+=Math.sin(a)*105*dt;}}
+  updateProjectiles(dt,now); updateHud(); if(D.f[0].hp<=0||D.f[1].hp<=0)setTimeout(resolveDuel,350),D.done=true;}
+function controlFighter(f,o,dt,who){let x=0,y=0;if(who==='p1'){x=(keys.KeyD?1:0)-(keys.KeyA?1:0)+touches.p1.x;y=(keys.KeyS?1:0)-(keys.KeyW?1:0)+touches.p1.y;if(keys.Space||keys.KeyF)attack(f,o);if(keys.ShiftLeft)special(f,o);} else if(who==='p2'){x=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0)+touches.p2.x;y=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0)+touches.p2.y;if(keys.Enter||keys.Slash)attack(f,o);if(keys.ShiftRight)special(f,o);} else {let d=dist(f,o),r=def(f.u).range,ang=Math.atan2(o.y-f.y,o.x-f.x); if(r<130){x=Math.cos(ang);y=Math.sin(ang); if(d<r*.85){x*=.2;y*=.2;}} else {if(d<170){x=-Math.cos(ang);y=-Math.sin(ang)} else if(d>360){x=Math.cos(ang);y=Math.sin(ang)} x+=Math.sin(performance.now()/500+f.i)*.45;y+=Math.cos(performance.now()/650+f.i)*.35;} for(const p of D.projectiles)if(p.owner!==f&&Math.hypot(p.x-f.x,p.y-f.y)<92){x+=-p.vy*.003;y+=p.vx*.003} if(Math.random()<.08&&((r<130&&d<r*1.35)||(r>130)))attack(f,o); if(Math.random()<.012)special(f,o);}
+  let mag=Math.hypot(x,y)||1; if(mag>1){x/=mag;y/=mag} f.vx+=x*f.spd*5*dt;f.vy+=y*f.spd*5*dt;}
+function attack(f,o){if(f.atk>0||D.count>0||D.done)return; let d=def(f.u),di=dist(f,o); f.atk=d.cd; beep('attack'); if(d.range<130){if(di<d.range+o.r)damage(o,f.dmg,f); else {let a=Math.atan2(o.y-f.y,o.x-f.x);f.vx+=Math.cos(a)*210;f.vy+=Math.sin(a)*210;}} else fire(f,o,f.dmg,360,5);}
+function fire(f,o,dmg,spd=360,size=5,spread=0){let a=Math.atan2(o.y-f.y,o.x-f.x)+(Math.random()-.5)*spread; D.projectiles.push({x:f.x+Math.cos(a)*24,y:f.y+Math.sin(a)*24,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,dmg,owner:f,r:size,life:1.8,color:def(f.u).f==='S'?'#6dfcff':'#d56bff'});}
+function special(f,o){if(f.spc>0||D.count>0||D.done)return; let t=f.u.type; f.spc=Math.max(4,1/def(f.u).sp); beep('special'); if(t==='CC'||t==='SD'){f.shield=performance.now()+2200;fx(f.x,f.y,'#6dfcff',18);}
+  else if(t==='PS'||t==='RC'){let a=Math.atan2(o.y-f.y,o.x-f.x);f.vx+=Math.cos(a)*520;f.vy+=Math.sin(a)*520;if(dist(f,o)<145)damage(o,f.dmg*1.65,f);fx(o.x,o.y,'#ffdc63',18);}
+  else if(t==='AS'){if(dist(f,o)<540)damage(o,f.dmg*2.05,f);D.beams.push({a:f,b:o,t:performance.now()+170,color:'#cfffff'});}
+  else if(t==='PM'){f.hp=Math.min(f.max,f.hp+18);fire(f,o,f.dmg*.8,390,4,.35);fire(f,o,f.dmg*.8,390,4,.35);fx(f.x,f.y,'#7dff96',12);}
+  else if(t==='NW'){if(dist(f,o)<150)damage(o,f.dmg*1.55,f);fx(f.x,f.y,'#ffdc63',35);}
+  else if(t==='NO'){f.aura=performance.now()+3000;fx(f.x,f.y,'#d56bff',25);}
+  else if(t==='EC'){fire(f,o,f.dmg*2.05,230,11,.05);}
+  else if(t==='GW'){let a=Math.random()*6.28;f.x=Math.max(40,Math.min(920,f.x+Math.cos(a)*115));f.y=Math.max(40,Math.min(480,f.y+Math.sin(a)*115));f.invis=performance.now()+1600;fx(f.x,f.y,'#d56bff',18);}
+  else if(t==='CB'){for(let i=0;i<3;i++)fire(f,o,f.dmg*.85,340,4,.7);}
+  else if(t==='GB'){f.pull=performance.now()+2500;if(dist(f,o)<120)damage(o,f.dmg*.75,f);fx(f.x,f.y,'#d56bff',24);}}
+function damage(f,amt,src){if(f.invis>performance.now())amt*=.25;if(f.shield>performance.now())amt*=.45; f.hp-=amt; beep('hit'); fx(f.x,f.y,def(src.u).f==='S'?'#6dfcff':'#d56bff',6);}
+function updateProjectiles(dt,now){for(const p of D.projectiles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let o=D.f[1-p.owner.i]; if(o.hp>0&&Math.hypot(p.x-o.x,p.y-o.y)<p.r+o.r){damage(o,p.dmg,p.owner);p.life=-1;}} D.projectiles=D.projectiles.filter(p=>p.life>0&&p.x>-30&&p.x<990&&p.y>-30&&p.y<550); D.fx=D.fx.filter(e=>e.t>now); D.beams=D.beams.filter(e=>e.t>now);}
+function resolveDuel(){if(!D)return; cancelAnimationFrame(raf); let a=D.f[0],b=D.f[1],winA=a.hp>0,winB=b.hp>0,reason=''; if(winA&&!winB){D.defender.hp=0;D.att.hp=Math.max(1,Math.round(a.hp/a.mod.hp));D.att.r=D.tr;D.att.c=D.tc;reason=def(D.att).name+' won the duel.';}
+  else if(winB&&!winA){D.att.hp=0;D.defender.hp=Math.max(1,Math.round(b.hp/b.mod.hp));reason=def(D.defender).name+' held the square.';}
+  else {D.att.hp=0;D.defender.hp=0;reason='Both robots were destroyed.';}
+  G.units=G.units.filter(u=>u.hp>0); D=null; G.screen='board'; show('boardScreen');log(reason);checkCommand(); if(G.screen==='board')endTurn();}
+function updateHud(){if(!D)return; let [p1,p2]=hudPair(); $('p1HP').style.width=Math.max(0,p1.hp/p1.max*100)+'%'; $('p2HP').style.width=Math.max(0,p2.hp/p2.max*100)+'%'; $('p1CD').style.width=(1-Math.min(1,p1.spc/Math.max(4,1/def(p1.u).sp)))*100+'%'; $('p2CD').style.width=(1-Math.min(1,p2.spc/Math.max(4,1/def(p2.u).sp)))*100+'%';}
+function drawCombat(now){let w=ac.clientWidth,h=ac.clientHeight,sx=w/960,sy=h/520; ax.clearRect(0,0,w,h); ax.save(); ax.scale(sx,sy); let grd=ax.createLinearGradient(0,0,960,520); grd.addColorStop(0,D&&D.e==='L'?'#0c3240':D&&D.e==='D'?'#210c30':'#101924');grd.addColorStop(1,'#02060c');ax.fillStyle=grd;ax.fillRect(0,0,960,520); ax.strokeStyle='#ffffff12';for(let x=0;x<960;x+=40){ax.beginPath();ax.moveTo(x,0);ax.lineTo(x,520);ax.stroke();}for(let y=0;y<520;y+=40){ax.beginPath();ax.moveTo(0,y);ax.lineTo(960,y);ax.stroke();}
+  if(D){for(const p of D.projectiles){ax.strokeStyle=p.color;ax.lineWidth=3;ax.globalAlpha=.45;ax.beginPath();ax.moveTo(p.x-p.vx*.04,p.y-p.vy*.04);ax.lineTo(p.x,p.y);ax.stroke();ax.globalAlpha=1;ax.fillStyle=p.color;ax.beginPath();ax.arc(p.x,p.y,p.r,0,7);ax.fill();} for(const be of D.beams){ax.strokeStyle=be.color;ax.lineWidth=6;ax.shadowColor=be.color;ax.shadowBlur=18;ax.beginPath();ax.moveTo(be.a.x,be.a.y);ax.lineTo(be.b.x,be.b.y);ax.stroke();ax.shadowBlur=0;} for(const e of D.fx){let k=Math.max(0,Math.min(1,(e.t-now)/e.life));ax.globalAlpha=Math.max(0,k);ax.strokeStyle=e.color;ax.lineWidth=2;ax.beginPath();ax.arc(e.x,e.y,Math.max(0,e.r*(1-k+0.2)),0,7);ax.stroke();ax.globalAlpha=1;} for(const f of D.f)drawFighter(ax,f); $('countdown').textContent=D.count>0?Math.ceil(D.count):'';} ax.restore();}
+function drawFighter(ctx,f){let d=def(f.u),t=f.u.type,solar=d.f==='S',now=performance.now(); ctx.save();ctx.translate(f.x,f.y); if(f.invis>now)ctx.globalAlpha=.42; ctx.shadowColor=solar?'#6dfcff':'#d56bff';ctx.shadowBlur=18;ctx.fillStyle=solar?'#11313e':'#2b1038';ctx.strokeStyle=solar?'#6dfcff':'#d56bff';ctx.lineWidth=3; if(t==='SD'||t==='GB'){roundRect(ctx,-28,-20,56,40,10);ctx.fill();ctx.stroke();}else if(d.range<130)poly(ctx,26,d.f==='S'?5:4,Math.PI/2);else {ctx.beginPath();ctx.arc(0,0,25,0,7);ctx.fill();ctx.stroke();} ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 15px Arial';ctx.fillText(d.abbr,0,0); if(f.shield>now){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,35,0,7);ctx.stroke();} if(f.aura>now||f.pull>now){ctx.strokeStyle=solar?'#6dfcff88':'#d56bff88';ctx.beginPath();ctx.arc(0,0,60+Math.sin(now/90)*5,0,7);ctx.stroke();} ctx.restore();}
+function fx(x,y,color,n=10){let now=performance.now();for(let i=0;i<n;i++)D.fx.push({x:x+(Math.random()-.5)*18,y:y+(Math.random()-.5)*18,r:8+Math.random()*35,t:now+250+Math.random()*350,life:400,color});}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+
+/* QA-only test hook for deterministic verification without altering normal gameplay. */
+function qaSnapshot(){return {screen:G?G.screen:'title',mode:G?G.mode:'ai',turn:G?G.turn:'S',turnName:G?sideName(G.turn):'Solar Protocol',turns:G?G.turns:0,winner:$('winnerTitle').textContent,winReason:$('winnerReason').textContent,message:$('log').textContent,selected:selected?selected.id:null,legal:legal.map(m=>({r:m.r,c:m.c,attack:!!m.attack,target:m.target?m.target.id:null})),boardCanvas:{width:bc.width,height:bc.height,clientWidth:bc.clientWidth,clientHeight:bc.clientHeight},arenaCanvas:{width:ac.width,height:ac.height,clientWidth:ac.clientWidth,clientHeight:ac.clientHeight},units:G?G.units.map(u=>({id:u.id,type:u.type,r:u.r,c:u.c,hp:u.hp,max:u.max})):[],combat:D?{count:D.count,state:D.done?'combatResolving':'combatActive',message:$('combatMsg').textContent,modText:$('modText').textContent,fighters:D.f.map(f=>({id:f.u.id,type:f.u.type,controller:controlFor(f),label:def(f.u).name+' · '+sideName(def(f.u).f),controlHint:controlText(f),x:f.x,y:f.y,hp:f.hp,max:f.max,attackCooldown:f.atk,specialCooldown:f.spc}))}:null};}
+function ensureQaBridge(){let host=$('cdTestBridge'); if(!host){host=document.createElement('div'); host.id='cdTestBridge'; host.setAttribute('aria-hidden','true'); Object.assign(host.style,{position:'fixed',left:'-9999px',top:'0',width:'1px',height:'1px',overflow:'hidden',opacity:'0',pointerEvents:'none',zIndex:'-1'}); host.innerHTML='<textarea id="cdTestCommand" aria-label="Circuit Dominion QA command" style="width:12px;height:12px;padding:0;margin:0;border:0;"></textarea><button id="cdTestRun" type="button" style="width:12px;height:12px;padding:0;margin:0;border:0;">Run QA</button><script id="cdTestState" type="application/json"><\\/script>'; document.body.appendChild(host);} return $('cdTestState');}
+function writeQaBridge(payload){ensureQaBridge().textContent=JSON.stringify(payload);}
+function qaFlush(){if(G&&G.screen==='board')drawBoard(); if(D)drawCombat(performance.now()); let snapshot=qaSnapshot(); writeQaBridge(snapshot); return snapshot;}
+function qaMatch(u,m={}){if(!u)return false; if(m.id&&u.id!==m.id)return false; if(m.type&&u.type!==m.type)return false; if(m.r!==undefined&&u.r!==m.r)return false; if(m.c!==undefined&&u.c!==m.c)return false; return true;}
+window.__CD_TEST__={version:1,getSnapshot:()=>qaSnapshot(),startGame(mode='ai'){start(mode);return qaFlush();},setDuelAiEnabled(enabled){$('duelAIToggle').checked=!!enabled;return qaSnapshot();},clickBoard(r,c){doBoardClick(r,c);return qaFlush();},selectUnit(match){let u=G.units.find(x=>qaMatch(x,match)&&x.hp>0); if(!u)return null; doBoardClick(u.r,u.c); return qaFlush();},moveSelectedTo(r,c){doBoardClick(r,c);return qaFlush();},setUnit(match,updates){let u=G.units.find(x=>qaMatch(x,match)); if(!u)return null; Object.assign(u,updates); return qaFlush();},setTurn(f){if(G)G.turn=f;return qaFlush();},stepFrames(frames=1,deltaSec=1/60){for(let i=0;i<frames;i++){if(D&&!D.paused)updateCombat(deltaSec,performance.now()+i*deltaSec*1000); if(G&&G.screen==='board'&&aiDelay>0&&--aiDelay===0)boardAI();} return qaFlush();},startCombatByMatch(attackerMatch,defenderMatch,r,c){let attacker=G.units.find(u=>qaMatch(u,attackerMatch)&&u.hp>0),defender=G.units.find(u=>qaMatch(u,defenderMatch)&&u.hp>0); if(!attacker||!defender)return null; startDuel(attacker,defender,r,c); return qaFlush();},resolveCombat(winner='attacker'){if(!D)return null; let [a,b]=D.f; a.hp=winner==='attacker'?Math.max(1,a.hp):0; b.hp=winner==='defender'?Math.max(1,b.hp):0; if(winner==='draw'){a.hp=0;b.hp=0} D.count=0; D.done=true; resolveDuel(); return qaFlush();},occupyPowerNodes(faction){let solar=['CC','PS','AS','SD','PM','NW'], units=G.units.filter(u=>u.hp>0&&(faction==='S'?solar.includes(u.type):!solar.includes(u.type))); NODES.forEach(([r,c],i)=>{if(units[i]){units[i].r=r;units[i].c=c;}}); G.turn=faction; return qaFlush();},evaluateCurrentWinners(){checkWinNodes(); if(G.screen==='board')checkCommand(); return qaFlush();},forceEndTurn(){endTurn(); return qaFlush();},returnToTitle(){show('titleScreen');G=null;D=null;selected=null;legal=[];return qaSnapshot();}};
+document.documentElement.dataset.cdTestReady='1'; ensureQaBridge(); $('cdTestRun').addEventListener('click',()=>{let payload={}; try{payload=JSON.parse($('cdTestCommand').value||'{}')}catch(err){writeQaBridge({error:'Invalid QA command JSON: '+String(err)}); return} let {action,args=[]}=payload,fn=window.__CD_TEST__&&window.__CD_TEST__[action]; try{writeQaBridge({action,result:typeof fn==='function'?fn(...args):{error:'Unknown QA action: '+action}})}catch(err){writeQaBridge({action,error:String(err)})}}); writeQaBridge(qaSnapshot());
+
+/* Touch and keyboard controls */
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(D&&['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Slash','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();if(e.code==='KeyH')toggleHelp(true);});
+window.addEventListener('keyup',e=>{keys[e.code]=false;});
+function bindStick(id,obj){let el=$(id),pid=null,cx=0,cy=0; el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;el.setPointerCapture(pid);let r=el.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;move(e);}); el.addEventListener('pointermove',move); ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,()=>{obj.x=0;obj.y=0;pid=null;})); function move(e){if(pid!==e.pointerId)return; e.preventDefault(); let dx=(e.clientX-cx)/38,dy=(e.clientY-cy)/38,mag=Math.hypot(dx,dy); if(mag>1){dx/=mag;dy/=mag} obj.x=dx;obj.y=dy;}}
+function touchDo(role,kind){let f=fighterFor(role); if(!f||!D)return; let o=D.f[1-f.i]; kind==='attack'?attack(f,o):special(f,o);}
+bindStick('stick1',touches.p1);bindStick('stick2',touches.p2); $('atk1').onclick=()=>touchDo('p1','attack'); $('sp1').onclick=()=>touchDo('p1','special'); $('atk2').onclick=()=>touchDo('p2','attack'); $('sp2').onclick=()=>touchDo('p2','special');
+
+/* UI wiring and lightweight main loop */
+function toggleHelp(on){$('helpOverlay').classList.toggle('active',on);}
+$('howBtn').onclick=() => toggleHelp(true); $('boardHelp').onclick=() => toggleHelp(true); $('endHelp').onclick=() => toggleHelp(true); $('closeHelp').onclick=() => toggleHelp(false);
+$('newAI').onclick=()=>start('ai'); $('newAI2').onclick=()=>start('ai'); $('newPVP').onclick=()=>start('pvp'); $('restartBtn').onclick=()=>start(G?G.mode:'ai'); $('endRestartAI').onclick=()=>start('ai'); $('endRestartPVP').onclick=()=>start('pvp');
+$('muteBtn').onclick=()=>{muted=!muted;$('muteBtn').textContent=muted?'Unmute':'Mute';};
+$('pauseBtn').onclick=()=>{if(D){D.paused=!D.paused;$('pauseBtn').textContent=D.paused?'Resume':'Pause';$('combatMsg').textContent=D.paused?'Paused':'Fight!';}};
+function tick(){if(G&&G.screen==='board'){if(aiDelay>0&&--aiDelay===0)boardAI(); if(msgTimer>0&&--msgTimer===0)$('log').style.color='#d7f5ff';} if($('cdTestState'))writeQaBridge(qaSnapshot()); requestAnimationFrame(tick);}
+resizeBoard();resizeArena();requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Circuit Dominion</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./styles/main.css">
+</head>
+<body>
+<div id="gameRoot">
+  <section id="titleScreen" class="screen active">
+    <div class="hero">
+      <h1>Circuit Dominion</h1>
+      <p class="tagline">Solar Protocol and Void Core fight across a shifting 9×9 energy grid. Move like a board tactician, then settle captures in a real-time robot duel.</p>
+      <div class="menu">
+        <button class="primary" id="newAI">Player vs AI<br><span class="small">Recommended start</span></button>
+        <button id="newPVP">Player vs Player<br><span class="small">Local controls</span></button>
+        <button class="void" id="newAI2">Practice vs AI<br><span class="small">Same rules</span></button>
+        <button id="howBtn">How to Play</button>
+      </div>
+      <label style="justify-content:center"><input type="checkbox" id="duelAIToggle" checked> AI controls Void Core during duels</label>
+      <p class="small">No external assets. Visuals use Canvas/CSS. Sounds are generated with Web Audio.</p>
+    </div>
+  </section>
+
+  <section id="boardScreen" class="screen">
+    <div class="leftPane"><div class="boardWrap"><canvas id="board" width="900" height="900" aria-label="Circuit Dominion tactical board"></canvas></div></div>
+    <aside class="sidePane">
+      <div class="card status"><h2>Turn</h2><div id="turnBadge"></div><div id="modeLabel" class="small"></div></div>
+      <div class="card"><h3>Selected Unit</h3><div id="selectedInfo">Select one of your robots.</div></div>
+      <div class="card"><h3>Power Nodes</h3><div id="nodeInfo"></div></div>
+      <div class="card"><h3>Grid Key</h3><div class="legend"><span class="pill">☀ L Light</span><span class="pill">◇ N Neutral</span><span class="pill">◆ D Dark</span></div><p class="small">White = selected. Green = legal move. Red = attack. Win by destroying the enemy Command Unit or occupying all ⚡ Power Nodes at turn end.</p></div>
+      <div class="card"><div id="log">Ready.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button id="boardHelp">Help</button><button id="muteBtn">Mute</button><button id="restartBtn">Restart</button></div></div>
+    </aside>
+  </section>
+
+  <section id="combatScreen" class="screen">
+    <div class="combatTop">
+      <div class="fighterPanel"><div class="fighterName" id="p1Name"></div><div class="hpBox"><div class="hpFill" id="p1HP"></div></div><div class="cdBox"><div class="cdFill" id="p1CD"></div></div><div class="small" id="p1Hint"></div></div>
+      <div class="centerPanel"><b>Duel Zone</b><div class="small">Combat modifier</div><div id="modText"></div><div id="combatMsg" class="small"></div><button id="pauseBtn" style="margin-top:5px;min-height:34px;padding:5px 10px">Pause</button></div>
+      <div class="fighterPanel"><div class="fighterName" id="p2Name"></div><div class="hpBox"><div class="hpFill" id="p2HP"></div></div><div class="cdBox"><div class="cdFill" id="p2CD"></div></div><div class="small" id="p2Hint"></div></div>
+    </div>
+    <div id="arenaWrap"><canvas id="arena" width="960" height="520" aria-label="Real time robot duel arena"></canvas><div id="countdown" class="countdown"></div></div>
+    <div class="touchControls" id="touchControls">
+      <div class="stick" id="stick1" aria-label="Player 1 movement joystick"></div><button class="bigBtn" id="atk1">P1 Attack</button><button class="bigBtn" id="sp1">P1 Special</button>
+      <div class="stick" id="stick2" aria-label="Player 2 movement joystick"></div><button class="bigBtn p2touch" id="atk2">P2 Attack</button><button class="bigBtn p2touch" id="sp2">P2 Special</button>
+    </div>
+  </section>
+
+  <section id="endScreen" class="screen">
+    <div class="hero"><h1 id="winnerTitle">Victory</h1><p id="winnerReason" class="tagline"></p><div class="menu"><button class="primary" id="endRestartAI">Restart vs AI</button><button id="endRestartPVP">Restart PvP</button><button id="endHelp">How to Play</button></div></div>
+  </section>
+
+  <div id="helpOverlay">
+    <div class="helpBox">
+      <h2>Circuit Dominion: quick rules</h2>
+      <div class="helpGrid">
+        <div><h3>Board</h3><p>Select one robot, then choose a highlighted square. Moving onto an enemy starts a duel. Units cannot pass through blockers except Glitch Wraith, which may phase through one occupied square.</p></div>
+        <div><h3>Win</h3><p>Destroy the enemy Command Unit, or occupy every ⚡ Power Node at the end of your turn.</p></div>
+        <div><h3>Energy</h3><p>Light robots gain +15% HP and damage on ☀ Light squares. Dark robots gain the same on ◆ Dark squares. Hostile polarity gives -10% damage. ◇ Neutral has no bonus.</p></div>
+        <div><h3>Combat controls</h3><p>Solar / P1: <span class="kbd">WASD</span> move, <span class="kbd">Space/F</span> attack, <span class="kbd">Left Shift</span> special. Void / P2: <span class="kbd">Arrows</span> move, <span class="kbd">Enter or /</span> attack, <span class="kbd">Right Shift</span> special. In PvAI, Solar is always human-controlled in duel.</p></div>
+        <div><h3>Board abilities</h3><p>Pulse Medic can repair adjacent allies. Corruptor Bot can weaken adjacent enemies. These consume the turn.</p></div>
+        <div><h3>Debug</h3><p><span class="kbd">`</span> toggles debug overlay. <span class="kbd">H</span> help, <span class="kbd">Esc</span> pause duel, <span class="kbd">R</span> restart match.</p></div>
+      </div>
+      <button id="closeHelp" class="primary">Close</button>
+    </div>
+  </div>
+
+  <div id="debugOverlay" class="debugOverlay">
+    <h3>Debug</h3>
+    <pre id="debugText"></pre>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
