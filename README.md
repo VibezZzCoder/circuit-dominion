@@ -11,13 +11,16 @@ Circuit Dominion is a tactical 9x9 board strategy game with real-time duel resol
 - `index.html`: source entry point
 - `src/`: gameplay, combat, rendering, input, UI, AI, platform, state modules
 - `styles/main.css`: styling and responsive layout
+- `assets/live/`: public local runtime backgrounds, sprites, and asset manifest
 - `release/`: single-file with all code merged `circuit_dominion.single-file.html`
 
 ## Play it here
 
 https://vibezzzcoder.github.io/circuit-dominion/
 
-or play the single-file build, which is available inside the release folder.
+Or play the single-file build, which is available inside the release folder. 
+
+NOTE: The main GitHub Pages version uses the full asset set in assets/live/. The single-file HTML release is a lightweight portable version and may use procedural fallback visuals.
 
 ## Controls
 

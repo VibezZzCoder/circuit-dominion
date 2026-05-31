@@ -19,6 +19,7 @@ import { updateCombat, startCombat } from "./combat.js";
 import { updateDebugSnapshot, fpsMeter } from "./debug.js";
 import { InputManager } from "./input.js";
 import { AudioManager } from "./audio.js";
+import { AssetManager } from "./assets.js";
 import { installPlatformGuards } from "./platform.js";
 import { Renderer } from "./render.js";
 import { BoardTurnState, TopLevelState, createInitialState, pushLog, setBoardTurnState, transitionTopState } from "./state.js";
@@ -29,7 +30,9 @@ import { FACTION_NAMES, POWER_NODES, enemyFaction } from "./utils.js";
 const ui = new UIController(document);
 const boardCanvas = document.getElementById("board");
 const arenaCanvas = document.getElementById("arena");
-const renderer = new Renderer(boardCanvas, arenaCanvas);
+const assets = new AssetManager();
+assets.ready.then(() => assets.applyTitleBackgrounds());
+const renderer = new Renderer(boardCanvas, arenaCanvas, assets);
 const platform = installPlatformGuards(document.getElementById("gameRoot"));
 
 let game = createInitialState("ai");

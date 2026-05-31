@@ -8,6 +8,8 @@
   --solar: #6dfcff;
   --void: #d56bff;
   --warn: #ffdc63;
+  --title-bg-landscape: none;
+  --title-bg-portrait: var(--title-bg-landscape);
 }
 
 * {
@@ -106,14 +108,36 @@ label {
   text-align: center;
 }
 
+#titleScreen {
+  background:
+    linear-gradient(180deg, #02060c66, #02060caa),
+    radial-gradient(circle at 50% 42%, #07192844, #02060cf0 72%),
+    var(--title-bg-landscape),
+    radial-gradient(circle at 15% 10%, #173557, #071019 48%, #04070d);
+  background-size: cover;
+  background-position: center;
+}
+
+#titleScreen::before,
+#endScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, #00eaff18, #0000 38%, #0000 62%, #d56bff1f);
+}
+
 .hero {
   max-width: 760px;
   width: min(94vw, 760px);
   padding: 28px;
   border: 1px solid var(--line);
-  border-radius: 24px;
-  background: linear-gradient(145deg, #0e1b2eea, #080d16ed);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #0a1422e8, #050912eb);
   box-shadow: 0 0 50px #22f2ff22, 0 0 90px #ad55ff16;
+  backdrop-filter: blur(3px);
+  position: relative;
+  z-index: 1;
 }
 
 h1 {
@@ -509,6 +533,19 @@ h1 {
 }
 
 @media (max-width: 620px) {
+  #titleScreen {
+    background-image:
+      linear-gradient(180deg, #02060c55, #02060cc0),
+      radial-gradient(circle at 50% 38%, #07192844, #02060cf0 76%),
+      var(--title-bg-portrait),
+      radial-gradient(circle at 15% 10%, #173557, #071019 48%, #04070d);
+  }
+
+  .hero {
+    padding: 22px;
+    border-radius: 16px;
+  }
+
   .sidePane {
     display: flex;
   }
@@ -530,5 +567,98 @@ h1 {
 
   .hero {
     padding: 18px;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  body {
+    overflow: hidden;
+  }
+
+  .screen {
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  #boardScreen {
+    flex-direction: row;
+    overflow: hidden;
+    padding: 8px;
+  }
+
+  .boardWrap {
+    width: min(92vh, 46vw);
+  }
+
+  .sidePane {
+    width: auto;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: start;
+    overflow: auto;
+  }
+
+  .sidePane .card {
+    min-height: 0;
+  }
+
+  #combatScreen {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .combatTop {
+    grid-template-columns: 1fr minmax(160px, 260px) 1fr;
+    gap: 6px;
+  }
+
+  .fighterPanel,
+  .centerPanel {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .fighterName {
+    font-size: 13px;
+  }
+
+  .hpBox,
+  .cdBox {
+    height: 11px;
+    margin-top: 4px;
+  }
+
+  #arenaWrap {
+    min-height: 0;
+    border-radius: 14px;
+  }
+
+  .touchControls {
+    grid-template-columns: minmax(140px, 1fr) auto auto;
+    gap: 6px;
+    padding: 0;
+  }
+
+  .stick {
+    height: 42px;
+    min-width: 130px;
+    border-radius: 12px;
+  }
+
+  .stick::before {
+    width: 18px;
+    height: 18px;
+    margin: -9px;
+  }
+
+  .bigBtn {
+    height: 42px;
+    min-height: 42px;
+    min-width: 92px;
+    padding: 5px 8px;
   }
 }

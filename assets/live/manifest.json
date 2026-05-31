@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "license": "GPL-3.0-or-later",
+  "generatedBy": "OpenAI image generation plus local Pillow normalization",
+  "notes": "Runtime assets are original generated art for Circuit Dominion. Procedural renderers remain as fallbacks.",
+  "assets": [
+    {
+      "id": "background.title-landscape",
+      "type": "background",
+      "path": "assets/live/backgrounds/title-landscape.webp",
+      "nativeWidth": 1920,
+      "nativeHeight": 1080,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-title-landscape",
+      "notes": "Generated neon sci-fi background with procedural fallback."
+    },
+    {
+      "id": "background.title-portrait",
+      "type": "background",
+      "path": "assets/live/backgrounds/title-portrait.webp",
+      "nativeWidth": 1080,
+      "nativeHeight": 1920,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-title-portrait",
+      "notes": "Generated neon sci-fi background with procedural fallback."
+    },
+    {
+      "id": "background.board-grid",
+      "type": "background",
+      "path": "assets/live/backgrounds/board-grid.webp",
+      "nativeWidth": 1536,
+      "nativeHeight": 1536,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-board-grid",
+      "notes": "Generated neon sci-fi background with procedural fallback."
+    },
+    {
+      "id": "background.combat-arena",
+      "type": "background",
+      "path": "assets/live/backgrounds/combat-arena.webp",
+      "nativeWidth": 1920,
+      "nativeHeight": 1080,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-combat-arena",
+      "notes": "Generated neon sci-fi background with procedural fallback."
+    },
+    {
+      "id": "unit.CC",
+      "type": "unit-sprite",
+      "faction": "solar",
+      "unitId": "CC",
+      "unitName": "Core Commander",
+      "path": "assets/live/sprites/units/solar-core-commander.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+    },
+    {
+      "id": "unit.PS",
+      "type": "unit-sprite",
+      "faction": "solar",
+      "unitId": "PS",
+      "unitName": "Photon Striker",
+      "path": "assets/live/sprites/units/solar-photon-striker.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 512,
+          "y": 0,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+    },
+    {
+      "id": "unit.AS",
+      "type": "unit-sprite",
+      "faction": "solar",
+      "unitId": "AS",
+      "unitName": "Arc Sniper",
+      "path": "assets/live/sprites/units/solar-arc-sniper.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 1024,
+          "y": 0,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+    },
+    {
+      "id": "unit.SD",
+      "type": "unit-sprite",
+      "faction": "solar",
+      "unitId": "SD",
+      "unitName": "Shield Drone",
+      "path": "assets/live/sprites/units/solar-shield-drone.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 1536,
+          "y": 0,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+    },
+    {
+      "id": "unit.PM",
+      "type": "unit-sprite",
+      "faction": "solar",
+      "unitId": "PM",
+      "unitName": "Pulse Medic",
+      "path": "assets/live/sprites/units/solar-pulse-medic.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 0,
+          "y": 512,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+    },
+    {
+      "id": "unit.NW",
+      "type": "unit-sprite",
+      "faction": "solar",
+      "unitId": "NW",
+      "unitName": "Nova Walker",
+      "path": "assets/live/sprites/units/solar-nova-walker.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 512,
+          "y": 512,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+    },
+    {
+      "id": "unit.NO",
+      "type": "unit-sprite",
+      "faction": "void",
+      "unitId": "NO",
+      "unitName": "Null Overlord",
+      "path": "assets/live/sprites/units/void-null-overlord.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 1024,
+          "y": 512,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+    },
+    {
+      "id": "unit.RC",
+      "type": "unit-sprite",
+      "faction": "void",
+      "unitId": "RC",
+      "unitName": "Razor Crawler",
+      "path": "assets/live/sprites/units/void-razor-crawler.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 1536,
+          "y": 512,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+    },
+    {
+      "id": "unit.EC",
+      "type": "unit-sprite",
+      "faction": "void",
+      "unitId": "EC",
+      "unitName": "Entropy Cannon",
+      "path": "assets/live/sprites/units/void-entropy-cannon.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 0,
+          "y": 1024,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+    },
+    {
+      "id": "unit.GW",
+      "type": "unit-sprite",
+      "faction": "void",
+      "unitId": "GW",
+      "unitName": "Glitch Wraith",
+      "path": "assets/live/sprites/units/void-glitch-wraith.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 512,
+          "y": 1024,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+    },
+    {
+      "id": "unit.CB",
+      "type": "unit-sprite",
+      "faction": "void",
+      "unitId": "CB",
+      "unitName": "Corruptor Bot",
+      "path": "assets/live/sprites/units/void-corruptor-bot.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 1024,
+          "y": 1024,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+    },
+    {
+      "id": "unit.GB",
+      "type": "unit-sprite",
+      "faction": "void",
+      "unitId": "GB",
+      "unitName": "Gravity Bruiser",
+      "path": "assets/live/sprites/units/void-gravity-bruiser.png",
+      "sheet": {
+        "id": "sheet.units-static",
+        "path": "assets/live/sprites/sheets/units-static.png",
+        "frame": {
+          "x": 1536,
+          "y": 1024,
+          "w": 512,
+          "h": 512
+        }
+      },
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+    },
+    {
+      "id": "sheet.units-static",
+      "type": "sprite-sheet",
+      "path": "assets/live/sprites/sheets/units-static.png",
+      "nativeWidth": 2048,
+      "nativeHeight": 1536,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "fallbackRendererId": "procedural-unit-shape",
+      "notes": "4 columns by 3 rows, 512px cells, assembled from final individual unit sprite files."
+    }
+  ]
+}

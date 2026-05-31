@@ -4,11 +4,12 @@ import { UNIT_DEFS } from "./units.js";
 import { ENERGY, POWER_NODES, clamp, energyLabel, unitFaction } from "./utils.js";
 
 export class Renderer {
-  constructor(boardCanvas, arenaCanvas) {
+  constructor(boardCanvas, arenaCanvas, assets = null) {
     this.boardCanvas = boardCanvas;
     this.boardCtx = boardCanvas.getContext("2d");
     this.arenaCanvas = arenaCanvas;
     this.arenaCtx = arenaCanvas.getContext("2d");
+    this.assets = assets;
   }
 
   resizeBoard() {
@@ -56,6 +57,17 @@ export class Renderer {
   }
 
   drawBoardBackground(ctx, game, cell) {
+    const boardImage = this.assets?.getImage("background.board-grid");
+    if (boardImage) {
+      ctx.save();
+      ctx.globalAlpha = 0.58;
+      ctx.drawImage(boardImage, 0, 0, cell * 9, cell * 9);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#02081466";
+      ctx.fillRect(0, 0, cell * 9, cell * 9);
+      ctx.restore();
+    }
+
     for (let row = 0; row < 9; row += 1) {
       for (let col = 0; col < 9; col += 1) {
         const square = game.board[row][col];
@@ -74,7 +86,7 @@ export class Renderer {
           grad.addColorStop(1, "#11151c");
         }
 
-        ctx.fillStyle = grad;
+        ctx.fillStyle = boardImage ? overlayTileFill(square.energy) : grad;
         ctx.fillRect(x, y, cell, cell);
 
         ctx.strokeStyle = "#ffffff18";
@@ -156,8 +168,21 @@ export class Renderer {
   drawUnitShape(ctx, unit, x, y, radius, cell) {
     const def = UNIT_DEFS[unit.type];
     const solar = def.faction === "S";
+    const sprite = this.assets?.getUnitImage(unit.type);
     ctx.save();
     ctx.translate(x, y);
+
+    if (sprite) {
+      const size = cell * 0.86;
+      ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
+      ctx.shadowBlur = 10;
+      ctx.drawImage(sprite, -size / 2, -size * 0.53, size, size);
+      ctx.shadowBlur = 0;
+      this.drawUnitStatus(ctx, unit, def, solar, radius, cell);
+      ctx.restore();
+      return;
+    }
+
     ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
     ctx.shadowBlur = 12;
     ctx.fillStyle = solar ? "#102e3b" : "#241032";
@@ -184,26 +209,33 @@ export class Renderer {
       this.drawPolygon(ctx, radius, 6, Math.PI / 6);
     }
 
-    ctx.shadowBlur = 0;
+    this.drawUnitStatus(ctx, unit, def, solar, radius, cell);
+
+    ctx.restore();
+  }
+
+  drawUnitStatus(ctx, unit, def, solar, radius, cell) {
+    const healthWidth = radius * 1.8;
+    const healthY = radius + 4;
+    ctx.fillStyle = "#000d";
+    ctx.fillRect(-healthWidth / 2, healthY, healthWidth, 4);
+    ctx.fillStyle = solar ? "#7dff96" : "#ff7aa0";
+    ctx.fillRect(-healthWidth / 2, healthY, healthWidth * Math.max(0, unit.hp / unit.maxHp), 4);
+
     ctx.fillStyle = "#e9fbff";
-    ctx.font = `bold ${Math.max(10, cell * 0.18)}px Arial`;
+    ctx.font = `bold ${Math.max(10, cell * 0.16)}px Arial`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(def.visual.abbr, 0, 0);
-
-    const healthWidth = radius * 1.8;
-    ctx.fillStyle = "#000b";
-    ctx.fillRect(-healthWidth / 2, radius + 4, healthWidth, 4);
-    ctx.fillStyle = solar ? "#7dff96" : "#ff7aa0";
-    ctx.fillRect(-healthWidth / 2, radius + 4, healthWidth * Math.max(0, unit.hp / unit.maxHp), 4);
+    ctx.shadowColor = "#000";
+    ctx.shadowBlur = 4;
+    ctx.fillText(def.visual.abbr, 0, radius * 0.08);
+    ctx.shadowBlur = 0;
 
     if (unit.weakTurns > 0) {
       ctx.fillStyle = "#ffdc63";
       ctx.font = `${Math.max(9, cell * 0.13)}px Arial`;
       ctx.fillText("WEAK", 0, -radius - 7);
     }
-
-    ctx.restore();
   }
 
   drawCombat(game) {
@@ -219,11 +251,18 @@ export class Renderer {
     ctx.save();
     ctx.scale(sx, sy);
 
-    const gradient = ctx.createLinearGradient(0, 0, 960, 520);
-    gradient.addColorStop(0, combat?.energy === "L" ? "#0c3240" : combat?.energy === "D" ? "#210c30" : "#101924");
-    gradient.addColorStop(1, "#02060c");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 960, 520);
+    const arenaImage = this.assets?.getImage("background.combat-arena");
+    if (arenaImage) {
+      ctx.drawImage(arenaImage, 0, 0, 960, 520);
+      ctx.fillStyle = "#02060c66";
+      ctx.fillRect(0, 0, 960, 520);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 960, 520);
+      gradient.addColorStop(0, combat?.energy === "L" ? "#0c3240" : combat?.energy === "D" ? "#210c30" : "#101924");
+      gradient.addColorStop(1, "#02060c");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 960, 520);
+    }
 
     ctx.strokeStyle = "#ffffff12";
     for (let x = 0; x < 960; x += 40) {
@@ -298,31 +337,48 @@ export class Renderer {
       ctx.globalAlpha = 0.42;
     }
 
-    ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
-    ctx.shadowBlur = 18;
-    ctx.fillStyle = solar ? "#11313e" : "#2b1038";
-    ctx.strokeStyle = solar ? "#6dfcff" : "#d56bff";
-    ctx.lineWidth = 3;
-
-    if (fighter.unit.type === "SD" || fighter.unit.type === "GB" || fighter.unit.type === "NW") {
-      this.drawRoundRect(ctx, -28, -20, 56, 40, 10);
-      ctx.fill();
-      ctx.stroke();
-    } else if (def.attackRange < 130) {
-      this.drawPolygon(ctx, 26, def.faction === "S" ? 5 : 4, Math.PI / 2);
+    const sprite = this.assets?.getUnitImage(fighter.unit.type);
+    if (sprite) {
+      const size = 78;
+      ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
+      ctx.shadowBlur = 18;
+      ctx.drawImage(sprite, -size / 2, -size * 0.55, size, size);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold 13px Arial";
+      ctx.shadowColor = "#000";
+      ctx.shadowBlur = 4;
+      ctx.fillText(def.visual.abbr, 0, 6);
+      ctx.shadowBlur = 0;
     } else {
-      ctx.beginPath();
-      ctx.arc(0, 0, 25, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
+      ctx.shadowColor = solar ? "#6dfcff" : "#d56bff";
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = solar ? "#11313e" : "#2b1038";
+      ctx.strokeStyle = solar ? "#6dfcff" : "#d56bff";
+      ctx.lineWidth = 3;
 
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "bold 15px Arial";
-    ctx.fillText(def.visual.abbr, 0, 0);
+      if (fighter.unit.type === "SD" || fighter.unit.type === "GB" || fighter.unit.type === "NW") {
+        this.drawRoundRect(ctx, -28, -20, 56, 40, 10);
+        ctx.fill();
+        ctx.stroke();
+      } else if (def.attackRange < 130) {
+        this.drawPolygon(ctx, 26, def.faction === "S" ? 5 : 4, Math.PI / 2);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, 25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold 15px Arial";
+      ctx.fillText(def.visual.abbr, 0, 0);
+    }
 
     if (fighter.shieldUntil > now) {
       ctx.strokeStyle = "#fff";
@@ -400,6 +456,16 @@ export class Renderer {
     const energy = game.board[unit.row][unit.col].energy;
     return `${def.name} (${def.visual.abbr})\n${def.faction === "S" ? "Solar" : "Void"} · ${def.alignment} align · HP ${Math.max(0, Math.ceil(unit.hp))}/${def.maxHp}\nMove: ${moveText(def.boardMovement.type)}\nAttack ${def.attackDamage} · ${def.attackRange < 120 ? "Melee" : "Ranged"} · CD ${def.attackCooldown}s\nSquare: ${energyLabel(energy)}${unit.type === "PM" ? "\nAbility: click adjacent ally to repair." : ""}${unit.type === "CB" ? "\nAbility: click adjacent enemy to weaken." : ""}`;
   }
+}
+
+function overlayTileFill(energy) {
+  if (energy === ENERGY.LIGHT) {
+    return "#1aefff24";
+  }
+  if (energy === ENERGY.DARK) {
+    return "#b43cff2c";
+  }
+  return "#07121d66";
 }
 
 function moveText(type) {
