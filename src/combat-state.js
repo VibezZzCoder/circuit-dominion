@@ -2,20 +2,13 @@
 import { FighterState } from "./state.js";
 
 export function createActionTiming(def, actionName) {
-  const t = def.timings;
-  if (actionName === "attack") {
-    return {
-      startupMs: t.attackStartup,
-      activeMs: t.attackActive,
-      recoveryMs: t.attackRecovery,
-      cooldownSec: def.attackCooldown,
-    };
-  }
+  const action = def[actionName];
+  const t = action.timing;
   return {
-    startupMs: t.specialStartup,
-    activeMs: t.specialActive,
-    recoveryMs: t.specialRecovery,
-    cooldownSec: def.specialCooldown,
+    startupMs: t.startupMs,
+    activeMs: t.activeMs,
+    recoveryMs: t.recoveryMs,
+    cooldownSec: action.cooldown,
   };
 }
 

@@ -20,8 +20,16 @@ export class UIController {
       winnerReason: byId("winnerReason"),
       turnBadge: byId("turnBadge"),
       modeLabel: byId("modeLabel"),
+      roundInfo: byId("roundInfo"),
+      chargeInfo: byId("chargeInfo"),
+      threatInfo: byId("threatInfo"),
       selectedInfo: byId("selectedInfo"),
       nodeInfo: byId("nodeInfo"),
+      commandInfo: byId("commandInfo"),
+      gridLockBtn: byId("gridLockBtn"),
+      fieldRepairBtn: byId("fieldRepairBtn"),
+      relayBtn: byId("relayBtn"),
+      cancelCommandBtn: byId("cancelCommandBtn"),
       log: byId("log"),
       p1Name: byId("p1Name"),
       p2Name: byId("p2Name"),
@@ -29,6 +37,12 @@ export class UIController {
       p2HP: byId("p2HP"),
       p1CD: byId("p1CD"),
       p2CD: byId("p2CD"),
+      p1AttackCD: byId("p1AttackCD"),
+      p2AttackCD: byId("p2AttackCD"),
+      p1SpecialName: byId("p1SpecialName"),
+      p2SpecialName: byId("p2SpecialName"),
+      p1SpecialInfo: byId("p1SpecialInfo"),
+      p2SpecialInfo: byId("p2SpecialInfo"),
       p1Hint: byId("p1Hint"),
       p2Hint: byId("p2Hint"),
       modText: byId("modText"),
@@ -68,9 +82,32 @@ export class UIController {
   updateBoardHud(game, selectedText, nodeLabels) {
     const isSolarTurn = game.turn === "S";
     this.refs.turnBadge.innerHTML = `<span class="${isSolarTurn ? "solarText" : "voidText"}">${FACTION_NAMES[game.turn]}</span>`;
-    this.refs.modeLabel.textContent = game.mode === "ai" ? "Player vs AI" : "Player vs Player";
+    this.refs.modeLabel.textContent = game.mode === "ai" ? `Player vs AI · ${game.difficulty}` : "Player vs Player";
+    const fluxNames = ["Neutral", "Light", "Neutral", "Dark"];
+    this.refs.roundInfo.textContent = `Round ${game.roundCount} · Flux: ${fluxNames[game.fluxPhase]}`;
+    this.refs.chargeInfo.textContent = `Command: Solar ${game.commandCharge.S}/3 · Void ${game.commandCharge.V}/3`;
+    const control = game.nodeControl || { S: 0, V: 0 };
+    this.refs.threatInfo.textContent =
+      control.S === 4 ? "Warning: Solar controls four nodes." :
+      control.V === 4 ? "Warning: Void controls four nodes." : "";
     this.refs.selectedInfo.textContent = selectedText;
     this.refs.nodeInfo.innerHTML = nodeLabels.map((n) => `<span class="pill">${n}</span>`).join(" ");
+    const actionName = game.boardAction?.type
+      ? {
+          gridLock: "Grid Lock: choose a Flux cell.",
+          fieldRepair: "Field Repair: choose a damaged non-command ally.",
+          emergencyRelay: game.boardAction.sourceUnitId
+            ? "Emergency Relay: choose a highlighted adjacent destination."
+            : "Emergency Relay: choose a non-command ally.",
+        }[game.boardAction.type]
+      : "Nodes charge tactical powers each round.";
+    this.refs.commandInfo.textContent = actionName;
+    const humanTurn = !(game.mode === "ai" && game.turn === "V");
+    const commanderAlive = game.commanderAlive?.[game.turn] !== false;
+    this.refs.gridLockBtn.disabled = !humanTurn || !commanderAlive || game.commandCharge[game.turn] < 1;
+    this.refs.fieldRepairBtn.disabled = !humanTurn || !commanderAlive || game.commandCharge[game.turn] < 1;
+    this.refs.relayBtn.disabled = !humanTurn || !commanderAlive || game.commandCharge[game.turn] < 2;
+    this.refs.cancelCommandBtn.disabled = !game.boardAction;
   }
 
   updateCombatHud(game) {
@@ -87,6 +124,8 @@ export class UIController {
 
     this.refs.p1CD.style.width = `${(1 - Math.min(1, hudP1.specialCooldown / hudP1.specialCooldownMax)) * 100}%`;
     this.refs.p2CD.style.width = `${(1 - Math.min(1, hudP2.specialCooldown / hudP2.specialCooldownMax)) * 100}%`;
+    this.refs.p1AttackCD.style.width = `${(1 - Math.min(1, hudP1.attackCooldown / hudP1.attackCooldownMax)) * 100}%`;
+    this.refs.p2AttackCD.style.width = `${(1 - Math.min(1, hudP2.attackCooldown / hudP2.attackCooldownMax)) * 100}%`;
 
     this.refs.countdown.textContent = combat.countdown > 0 ? String(Math.ceil(combat.countdown)) : "";
     this.refs.combatMsg.textContent = combat.message;
@@ -96,6 +135,10 @@ export class UIController {
     this.refs.p2Name.textContent = hudP2.label;
     this.refs.p1Hint.textContent = hudP1.controlHint;
     this.refs.p2Hint.textContent = hudP2.controlHint;
+    this.refs.p1SpecialName.textContent = hudP1.specialLabel.split(":")[0];
+    this.refs.p2SpecialName.textContent = hudP2.specialLabel.split(":")[0];
+    this.refs.p1SpecialInfo.textContent = hudP1.specialLabel;
+    this.refs.p2SpecialInfo.textContent = hudP2.specialLabel;
     this.refs.atk1.textContent = `${combat.touch.p1AttackLabel} Attack`;
     this.refs.sp1.textContent = `${combat.touch.p1SpecialLabel} Special`;
     this.refs.atk2.textContent = `${combat.touch.p2AttackLabel} Attack`;

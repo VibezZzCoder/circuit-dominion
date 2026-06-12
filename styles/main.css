@@ -48,8 +48,22 @@ body::before {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+}
+
+select {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #08131e;
+  color: var(--txt);
+  padding: 7px 10px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 button {
@@ -162,6 +176,11 @@ h1 {
   margin: 18px 0;
 }
 
+.difficultyPicker {
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
 .small {
   font-size: 13px;
   color: var(--muted);
@@ -221,6 +240,14 @@ h1 {
 .card h3 {
   margin: 0 0 8px;
   font-size: 18px;
+}
+
+.threatInfo {
+  min-height: 18px;
+  color: #ff8aa0;
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 4px;
 }
 
 .status {
@@ -287,6 +314,27 @@ h1 {
   gap: 6px;
 }
 
+.commandCard {
+  border-color: #ffdc6355;
+}
+
+.commandButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.commandButtons button {
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+#cancelCommandBtn {
+  grid-column: 1 / -1;
+}
+
 #combatScreen {
   flex-direction: column;
   gap: 8px;
@@ -337,6 +385,25 @@ h1 {
   width: 0;
   background: linear-gradient(90deg, #2af6ff, #e57cff);
   transition: width 0.08s;
+}
+
+.attackCdFill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ffdc63, #7dff96);
+  transition: width 0.08s;
+}
+
+.meterLabel {
+  color: #bcd5e6;
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.fighterSpecial {
+  color: #d7f5ff;
+  margin-top: 4px;
+  min-height: 30px;
 }
 
 .centerPanel {
@@ -552,17 +619,75 @@ h1 {
 
   .combatTop {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 4px;
   }
 
   .touchControls {
     grid-template-columns: 1fr auto auto;
     grid-auto-rows: auto;
+    gap: 6px;
+    padding: 0;
   }
 
-  #stick2,
-  .p2touch {
-    display: none;
+  #gameRoot {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+  }
+
+  #combatScreen {
+    min-height: 100dvh;
+    height: auto;
+    gap: 5px;
+    padding: 6px;
+    overflow: visible;
+  }
+
+  .fighterPanel,
+  .centerPanel {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .fighterName {
+    font-size: 14px;
+  }
+
+  .hpBox,
+  .cdBox {
+    height: 10px;
+    margin-top: 3px;
+  }
+
+  .meterLabel {
+    margin-top: 3px;
+  }
+
+  .fighterSpecial {
+    min-height: 0;
+    margin-top: 2px;
+    line-height: 1.2;
+  }
+
+  #arenaWrap {
+    flex: none;
+    min-height: 0;
+    width: 100%;
+    aspect-ratio: 960 / 520;
+  }
+
+  #arena {
+    position: absolute;
+    inset: 0;
+  }
+
+  .stick {
+    height: 62px;
+    border-radius: 14px;
+  }
+
+  .bigBtn {
+    height: 54px;
   }
 
   .hero {
@@ -632,7 +757,15 @@ h1 {
     margin-top: 4px;
   }
 
+  .fighterSpecial,
+  .meterLabel {
+    display: none;
+  }
+
   #arenaWrap {
+    flex: 1;
+    width: auto;
+    aspect-ratio: auto;
     min-height: 0;
     border-radius: 14px;
   }

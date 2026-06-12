@@ -6,6 +6,29 @@ Circuit Dominion is a tactical 9x9 board strategy game with real-time duel resol
 - Solar Protocol
 - Void Core
 
+## Screenshots
+
+### Strategic Board
+
+![Circuit Dominion board gameplay](docs/screenshots/board-gameplay.png)
+
+### Real-Time Combat
+
+![Circuit Dominion combat gameplay](docs/screenshots/combat-gameplay.png)
+
+Upload your screenshots using those filenames to fill these two slots.
+
+## Gameplay Highlights
+
+- Exact 27 Light / 27 Dark / 27 Flux board distribution
+- Global Flux cycle: Neutral -> Light -> Neutral -> Dark
+- Five Power Nodes with healing, Command charge, and objective victory
+- Grid Lock, Field Repair, and Emergency Relay Command powers
+- Persistent unit HP between board turns and real-time duels
+- Directional attacks, finite projectile range, cover, collision, telegraphed
+  specials, and escalating overtime
+- Easy, Standard, and Hard AI without hidden stat bonuses
+
 ## Project Structure
 
 - `index.html`: source entry point
@@ -58,7 +81,7 @@ PvAI invariant: human always controls Solar in duels; AI always controls Void, r
 ## Win Conditions
 
 - Destroy enemy Command Unit
-- Occupy all Power Nodes at end of turn
+- Occupy all five Power Nodes at the end of a turn
 
 ## Unit List
 
@@ -86,11 +109,17 @@ Board squares are:
 - ◇ Neutral Grid
 
 Combat modifiers:
-- Aligned polarity: +15% HP and damage
-- Hostile polarity: -10% damage
+- Aligned polarity: +8% HP and damage
+- Hostile polarity: -6% damage
 - Neutral: no modifier
 
-Unstable squares rotate polarity every 3 turns.
+The 27 Flux squares advance after both factions complete a turn:
+
+`Neutral -> Light -> Neutral -> Dark`
+
+Units standing on Power Nodes recover 12% maximum HP after their faction's
+turn. Controlling nodes also charges the three-point Command meter used for
+Grid Lock, Field Repair, and Emergency Relay.
 
 ## License
 

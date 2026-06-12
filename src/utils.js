@@ -23,12 +23,55 @@ export const ENERGY = {
 export const ENERGY_ORDER = [ENERGY.NEUTRAL, ENERGY.LIGHT, ENERGY.DARK];
 
 export const POWER_NODES = [
-  [2, 2],
-  [2, 6],
+  [0, 4],
+  [4, 0],
   [4, 4],
-  [6, 2],
-  [6, 6],
+  [4, 8],
+  [8, 4],
 ];
+
+export const FLUX_PHASES = [
+  ENERGY.NEUTRAL,
+  ENERGY.LIGHT,
+  ENERGY.NEUTRAL,
+  ENERGY.DARK,
+];
+
+export const COMMAND_POWER_COSTS = {
+  gridLock: 1,
+  fieldRepair: 1,
+  emergencyRelay: 2,
+};
+
+export const DIFFICULTY_SETTINGS = {
+  easy: {
+    id: "easy",
+    label: "Easy",
+    reactionMs: 280,
+    aimErrorRad: 0.24,
+    boardCandidates: 3,
+    replyDepth: 0,
+    specialBias: 0.68,
+  },
+  standard: {
+    id: "standard",
+    label: "Standard",
+    reactionMs: 170,
+    aimErrorRad: 0.13,
+    boardCandidates: 1,
+    replyDepth: 1,
+    specialBias: 0.88,
+  },
+  hard: {
+    id: "hard",
+    label: "Hard",
+    reactionMs: 90,
+    aimErrorRad: 0.05,
+    boardCandidates: 1,
+    replyDepth: 2,
+    specialBias: 0.96,
+  },
+};
 
 export function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -40,6 +83,14 @@ export function inBounds(row, col, size = 9) {
 
 export function enemyFaction(faction) {
   return faction === FACTIONS.SOLAR ? FACTIONS.VOID : FACTIONS.SOLAR;
+}
+
+export function factionEnergy(faction) {
+  return faction === FACTIONS.SOLAR ? ENERGY.LIGHT : ENERGY.DARK;
+}
+
+export function normalizeDifficulty(value) {
+  return DIFFICULTY_SETTINGS[value] ? value : "standard";
 }
 
 export function coordLabel(row, col) {

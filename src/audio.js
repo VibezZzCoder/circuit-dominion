@@ -3,15 +3,31 @@ export class AudioManager {
   constructor(getMuted) {
     this.getMuted = getMuted;
     this.ctx = null;
+    this.unlocked = false;
+  }
+
+  unlock() {
+    if (this.unlocked) {
+      return;
+    }
+
+    this.unlocked = true;
+    try {
+      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === "suspended") {
+        this.ctx.resume().catch(() => {});
+      }
+    } catch (_err) {
+      // Audio failure must never affect gameplay.
+    }
   }
 
   beep(kind) {
-    if (this.getMuted()) {
+    if (this.getMuted() || !this.unlocked || !this.ctx) {
       return;
     }
 
     try {
-      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
       const now = this.ctx.currentTime;
       const oscillator = this.ctx.createOscillator();
       const gain = this.ctx.createGain();

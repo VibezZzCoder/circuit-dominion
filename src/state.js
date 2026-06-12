@@ -34,6 +34,7 @@ export const FighterState = {
   SPECIAL_STARTUP: "specialStartup",
   SPECIAL_ACTIVE: "specialActive",
   SPECIAL_RECOVERY: "specialRecovery",
+  DASHING: "dashing",
   SHIELDED: "shielded",
   PHASING: "phasing",
   STUNNED: "stunned",
@@ -41,18 +42,26 @@ export const FighterState = {
   DEAD: "dead",
 };
 
-export function createInitialState(mode = "ai") {
+export function createInitialState(mode = "ai", difficulty = "standard") {
   return {
     mode,
+    difficulty,
     turn: FACTIONS.SOLAR,
     topState: TopLevelState.TITLE,
     boardTurnState: BoardTurnState.AWAITING_SELECTION,
     previousTopState: null,
     turnCount: 1,
+    roundCount: 1,
+    fluxPhase: 0,
+    commandCharge: {
+      [FACTIONS.SOLAR]: 0,
+      [FACTIONS.VOID]: 0,
+    },
     board: [],
     units: [],
     selectedUnitId: null,
     legalMoves: [],
+    boardAction: null,
     message: "Ready.",
     messageKind: "info",
     muted: false,

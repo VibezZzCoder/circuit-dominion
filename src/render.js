@@ -50,6 +50,7 @@ export class Renderer {
 
     this.drawBoardBackground(ctx, game, cell);
     this.drawLegalMoves(ctx, game, cell);
+    this.drawBoardActionTargets(ctx, game, cell);
     this.drawSelectedUnitFrame(ctx, game, cell);
     this.drawBoardUnits(ctx, game, cell);
 
@@ -92,18 +93,20 @@ export class Renderer {
         ctx.strokeStyle = "#ffffff18";
         ctx.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
 
-        // Only label charged squares; neutral cells stay clean to cut visual noise.
         if (square.energy !== ENERGY.NEUTRAL) {
           ctx.fillStyle = square.energy === ENERGY.LIGHT ? "#9effff88" : "#f0a0ff88";
           ctx.font = `${Math.max(10, cell * 0.16)}px Arial`;
           ctx.fillText(square.energy, x + 6, y + 16);
         }
 
-        if (square.shift) {
-          ctx.strokeStyle = "#ffdc6366";
+        if (square.flux) {
+          ctx.strokeStyle = square.lockFaction ? "#fff0a0dd" : "#ffdc6377";
           ctx.setLineDash([4, 4]);
           ctx.strokeRect(x + 5, y + 5, cell - 10, cell - 10);
           ctx.setLineDash([]);
+          ctx.fillStyle = square.lockFaction ? "#fff0a0" : "#ffdc6399";
+          ctx.font = `${Math.max(8, cell * 0.11)}px Arial`;
+          ctx.fillText(square.lockFaction ? "LOCK" : "F", x + cell - cell * 0.28, y + 15);
         }
 
         if (square.node) {
@@ -118,6 +121,15 @@ export class Renderer {
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("⚡", x + cell * 0.5, y + cell * 0.5);
+          const occupant = getUnitAt(game, row, col);
+          if (occupant) {
+            ctx.strokeStyle = unitFaction(occupant, UNIT_DEFS) === "S" ? "#6dfcff" : "#d56bff";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x + cell * 0.5, y + cell * 0.5, cell * 0.21, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+          }
           ctx.textAlign = "left";
           ctx.textBaseline = "alphabetic";
         }
@@ -138,6 +150,40 @@ export class Renderer {
       ctx.strokeStyle = move.attack ? "#ffb0bf" : "#baffc7";
       ctx.lineWidth = 2;
       ctx.stroke();
+    }
+  }
+
+  drawBoardActionTargets(ctx, game, cell) {
+    const action = game.boardAction;
+    if (!action) {
+      return;
+    }
+    if (action.type === "gridLock") {
+      for (let row = 0; row < 9; row += 1) {
+        for (let col = 0; col < 9; col += 1) {
+          if (game.board[row][col].flux) {
+            drawTargetRing(ctx, row, col, cell, "#ffdc6388", "#fff0a0");
+          }
+        }
+      }
+      return;
+    }
+    if (action.type === "fieldRepair" || (action.type === "emergencyRelay" && !action.sourceUnitId)) {
+      for (const unit of game.units) {
+        const def = UNIT_DEFS[unit.type];
+        const validRepair =
+          action.type === "fieldRepair" &&
+          def.faction === game.turn &&
+          !def.isCommandUnit &&
+          unit.hp < unit.maxHp;
+        const validRelay =
+          action.type === "emergencyRelay" &&
+          def.faction === game.turn &&
+          !def.isCommandUnit;
+        if (unit.alive && (validRepair || validRelay)) {
+          drawTargetRing(ctx, unit.row, unit.col, cell, "#ffdc6388", "#fff0a0");
+        }
+      }
     }
   }
 
@@ -282,6 +328,45 @@ export class Renderer {
     }
 
     if (combat) {
+      for (const obstacle of combat.obstacles) {
+        ctx.fillStyle = "#07111ddd";
+        ctx.strokeStyle = combat.energy === "L" ? "#6dfcffaa" : combat.energy === "D" ? "#d56bffaa" : "#b9d4e6aa";
+        ctx.lineWidth = 2;
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        ctx.clip();
+        ctx.globalAlpha = 0.28;
+        ctx.lineWidth = 1;
+        for (let offset = -obstacle.height; offset < obstacle.width + obstacle.height; offset += 12) {
+          ctx.beginPath();
+          ctx.moveTo(obstacle.x + offset, obstacle.y + obstacle.height);
+          ctx.lineTo(obstacle.x + offset + obstacle.height, obstacle.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+        ctx.fillStyle = "#e9fbffcc";
+        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("COVER", obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+      }
+
+      for (const barrier of combat.barriers) {
+        ctx.fillStyle = barrier.ownerSlot === 0 ? "#6dfcff33" : "#d56bff33";
+        ctx.strokeStyle = barrier.ownerSlot === 0 ? "#6dfcff" : "#d56bff";
+        ctx.lineWidth = 3;
+        ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
+        ctx.strokeRect(barrier.x, barrier.y, barrier.width, barrier.height);
+        ctx.fillStyle = "#e9fbffdd";
+        ctx.font = "bold 9px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("BARRIER", barrier.x + barrier.width / 2, barrier.y + barrier.height / 2);
+      }
+
       for (const projectile of combat.projectiles) {
         ctx.strokeStyle = projectile.color;
         ctx.lineWidth = 3;
@@ -366,7 +451,7 @@ export class Renderer {
         this.drawRoundRect(ctx, -28, -20, 56, 40, 10);
         ctx.fill();
         ctx.stroke();
-      } else if (def.attackRange < 130) {
+      } else if (def.attack.kind === "melee") {
         // Pentagon for all melee fighters to match the board-piece silhouette.
         this.drawPolygon(ctx, 26, 5, Math.PI / 2);
       } else {
@@ -384,13 +469,20 @@ export class Renderer {
       ctx.fillText(def.visual.abbr, 0, 0);
     }
 
+    ctx.strokeStyle = solar ? "#6dfcffcc" : "#d56bffcc";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(fighter.facingX * 18, fighter.facingY * 18);
+    ctx.lineTo(fighter.facingX * 37, fighter.facingY * 37);
+    ctx.stroke();
+
     if (fighter.state === "attackStartup" || fighter.state === "specialStartup") {
-      // Telegraph the wind-up so the new startup window is readable.
       ctx.strokeStyle = "#ffdc63cc";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(0, 0, 32, -Math.PI / 2, Math.PI * 1.5);
       ctx.stroke();
+      this.drawActionTelegraph(ctx, fighter, def);
     }
 
     if (fighter.hurtUntil > now) {
@@ -419,11 +511,54 @@ export class Renderer {
       ctx.strokeStyle = "#ffffff33";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(0, 0, clamp(def.attackRange / 2.2, 20, 240), 0, Math.PI * 2);
+      ctx.arc(0, 0, clamp(def.attack.range, 20, 520), 0, Math.PI * 2);
       ctx.stroke();
     }
 
     ctx.restore();
+  }
+
+  drawActionTelegraph(ctx, fighter, def) {
+    const action = fighter.pendingAction;
+    if (!action) {
+      return;
+    }
+    const facingX = action.facingX;
+    const facingY = action.facingY;
+    if (action.kind === "attack") {
+      const length = def.attack.kind === "melee" ? def.attack.range : Math.min(def.attack.range, 280);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(facingX * length, facingY * length);
+      ctx.stroke();
+      return;
+    }
+
+    const special = def.special;
+    if (special.kind === "radialBlast") {
+      ctx.beginPath();
+      ctx.arc(0, 0, special.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      return;
+    }
+    if (special.kind === "gravityCone") {
+      const angle = Math.atan2(facingY, facingX);
+      const half = (special.arcDeg * Math.PI) / 360;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, special.range, angle - half, angle + half);
+      ctx.closePath();
+      ctx.stroke();
+      return;
+    }
+    const length =
+      special.range ||
+      special.distance ||
+      (special.kind === "dash" ? 180 : def.attack.range);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(facingX * Math.min(length, 760), facingY * Math.min(length, 760));
+    ctx.stroke();
   }
 
   drawPolygon(ctx, radius, points, rotation) {
@@ -474,8 +609,19 @@ export class Renderer {
     }
     const def = UNIT_DEFS[unit.type];
     const energy = game.board[unit.row][unit.col].energy;
-    return `${def.name} (${def.visual.abbr})\n${def.faction === "S" ? "Solar" : "Void"} · ${def.alignment} align · HP ${Math.max(0, Math.ceil(unit.hp))}/${def.maxHp}\nMove: ${moveText(def.boardMovement.type)}\nAttack ${def.attackDamage} · ${def.attackRange < 120 ? "Melee" : "Ranged"} · CD ${def.attackCooldown}s\nSquare: ${energyLabel(energy)}${unit.type === "PM" ? "\nAbility: click adjacent ally to repair." : ""}${unit.type === "CB" ? "\nAbility: click adjacent enemy to weaken." : ""}`;
+    return `${def.name} (${def.visual.abbr})\n${def.faction === "S" ? "Solar" : "Void"} · ${def.alignment} align · HP ${Math.max(0, Math.ceil(unit.hp))}/${def.maxHp}\nMove: ${moveText(def.boardMovement.type)}\nAttack ${def.attack.damage} · ${def.attack.kind === "melee" ? "Melee" : "Ranged"} · CD ${def.attack.cooldown}s\nSpecial: ${def.special.name}\nSquare: ${energyLabel(energy)}${game.board[unit.row][unit.col].flux ? " · Flux" : ""}${unit.type === "PM" ? "\nAbility: click adjacent ally to repair." : ""}${unit.type === "CB" ? "\nAbility: click adjacent enemy to weaken." : ""}`;
   }
+}
+
+function drawTargetRing(ctx, row, col, cell, fill, stroke) {
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(col * cell + cell / 2, row * cell + cell / 2, cell * 0.37, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.lineWidth = 1;
 }
 
 function overlayTileFill(energy) {
