@@ -7,14 +7,16 @@ export class AudioManager {
   }
 
   unlock() {
-    if (this.unlocked) {
+    if (this.ctx?.state === "running") {
       return;
     }
 
-    this.unlocked = true;
     try {
-      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
-      if (this.ctx.state === "suspended") {
+      if (!this.ctx || this.ctx.state === "closed") {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      this.unlocked = true;
+      if (this.ctx.state !== "running") {
         this.ctx.resume().catch(() => {});
       }
     } catch (_err) {
@@ -23,7 +25,7 @@ export class AudioManager {
   }
 
   beep(kind) {
-    if (this.getMuted() || !this.unlocked || !this.ctx) {
+    if (this.getMuted() || !this.unlocked || this.ctx?.state !== "running") {
       return;
     }
 

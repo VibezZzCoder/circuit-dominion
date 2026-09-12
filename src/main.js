@@ -50,11 +50,15 @@ const unlockAudio = (event) => {
   if (!event.isTrusted) {
     return;
   }
+  // Touch/pen activation arrives on release, not pointerdown. Creating audio
+  // early emits autoplay warnings even though the following release can resume.
+  if (event.type === "pointerdown" && event.pointerType !== "mouse") return;
   audio.unlock();
-  window.removeEventListener("pointerdown", unlockAudio, true);
-  window.removeEventListener("keydown", unlockAudio, true);
+  // Keep listening: Safari can suspend/interrupt audio after backgrounding.
+  // A later trusted gesture must be able to resume it or retry a failed unlock.
 };
 window.addEventListener("pointerdown", unlockAudio, true);
+window.addEventListener("pointerup", unlockAudio, true);
 window.addEventListener("keydown", unlockAudio, true);
 const fpsTick = fpsMeter();
 let helpReturnState = TopLevelState.TITLE;
@@ -397,6 +401,13 @@ function executeBoardAiChoice(choice) {
 }
 
 function handleGlobalActions(actions) {
+  if (actions.pause && game.topState === TopLevelState.HELP) {
+    // Escape dismisses the modal through its normal restoration path; it must
+    // not unpause combat behind an overlay that remains visible.
+    setHelpVisible(false);
+    input.resetAll();
+    return;
+  }
   if (actions.toggleHelp) {
     const willOpen = !document.getElementById("helpOverlay").classList.contains("active");
     setHelpVisible(willOpen);
@@ -435,9 +446,13 @@ function updateGame(deltaSec) {
   }
 
   if (game.combat) {
-    const result = updateCombat(game, actions, game.debug.slowMo ? deltaSec * 0.4 : deltaSec, performance.now(), audio);
+    const duelDelta = game.debug.slowMo ? deltaSec * 0.4 : deltaSec;
+    const duelNow = game.combat.nowMs + (game.combat.paused ? 0 : duelDelta * 1000);
+    const result = updateCombat(game, actions, duelDelta, duelNow, audio);
 
-    if (game.combat?.state === "combatCountdown") {
+    if (game.combat?.paused) {
+      if (game.topState !== TopLevelState.HELP) transitionTopState(game, TopLevelState.PAUSED, "combat paused");
+    } else if (game.combat?.state === "combatCountdown") {
       transitionTopState(game, TopLevelState.COMBAT_COUNTDOWN, "combat countdown");
     } else if (game.combat?.state === "combatActive") {
       transitionTopState(game, TopLevelState.COMBAT_ACTIVE, "combat active");
@@ -629,6 +644,8 @@ function buildQaSnapshot() {
     roundCount: game.roundCount,
     fluxPhase: game.fluxPhase,
     commandCharge: { ...game.commandCharge },
+    audio: { unlocked: audio.unlocked, state: audio.ctx?.state || "uninitialized" },
+    input: input.getSnapshot(),
     boardAction: game.boardAction ? { ...game.boardAction } : null,
     winner: game.winner,
     winReason: game.winReason,
@@ -674,6 +691,8 @@ function buildQaSnapshot() {
     combat: game.combat
       ? {
           state: game.combat.state,
+          paused: game.combat.paused,
+          nowMs: game.combat.nowMs,
           countdown: game.combat.countdown,
           message: game.combat.message,
           modText: game.combat.modText,

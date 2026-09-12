@@ -394,7 +394,7 @@ export class Renderer {
         ctx.shadowBlur = 0;
       }
 
-      const now = performance.now();
+      const now = combat.nowMs;
       for (const fx of combat.effects) {
         const k = clamp((fx.until - now) / fx.life, 0, 1);
         ctx.globalAlpha = Math.max(0, k);
@@ -407,17 +407,16 @@ export class Renderer {
       }
 
       for (const fighter of combat.fighters) {
-        this.drawFighter(ctx, fighter, game.debug.showRanges);
+        this.drawFighter(ctx, fighter, game.debug.showRanges, now);
       }
     }
 
     ctx.restore();
   }
 
-  drawFighter(ctx, fighter, showRanges) {
+  drawFighter(ctx, fighter, showRanges, now) {
     const def = UNIT_DEFS[fighter.unit.type];
     const solar = def.faction === "S";
-    const now = performance.now();
 
     ctx.save();
     ctx.translate(fighter.x, fighter.y);

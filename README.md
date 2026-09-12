@@ -16,7 +16,7 @@ Circuit Dominion is a tactical 9x9 board strategy game with real-time duel resol
 
 ![Circuit Dominion combat gameplay](docs/screenshots/combat-gameplay.png)
 
-Upload your screenshots using those filenames to fill these two slots.
+Fresh gameplay captures from the September 2026 release are included above.
 
 ## Gameplay Highlights
 
@@ -41,7 +41,7 @@ Upload your screenshots using those filenames to fill these two slots.
 
 ## Play it here
 
-https://vibezzzcoder.github.io/circuit-dominion/
+[Play Circuit Dominion](https://vibezzzcoder.github.io/circuit-dominion/)
 
 Or play the single-file build inside the release folder.
 
@@ -49,6 +49,34 @@ NOTE: `release/circuit_dominion.single-file.html` is a true all-in-one build: th
 all `src/` modules, and every image are inlined (images as data URIs), so it runs
 offline from a single file with the full art. Regenerate it after source/asset
 changes with `node scripts/build-single-file.mjs` (also run by `node scripts/build-release.mjs`).
+
+## Local Build and Verification
+
+Run `python3 -m http.server 8787 --bind 127.0.0.1`, then open
+`http://127.0.0.1:8787/index.html` for source play or
+`http://127.0.0.1:8787/release/index.html` for the generated release.
+
+Before distributing a changed build, run:
+
+```sh
+node scripts/sanity-tests.mjs
+node scripts/platform-tests.mjs
+node scripts/matchup-simulations.mjs
+node scripts/build-release.mjs
+node scripts/release-tests.mjs
+node scripts/browser-e2e-tests.mjs
+```
+
+The build verifies source/release byte parity, exact filenames, the GPL notice,
+local assets, and the single-file output. Browser tests require Chrome/Chromium
+and localhost permissions. `node scripts/compare-hosted.mjs` compares public
+hosted files with the local release without changing anything remotely.
+
+For publication, use the generated `release/` contents, with its `index.html`
+as the online entry point. Include corresponding GPL source when distributing;
+keep local drafts and QA captures under `assets/work/` out of the upload.
+Publication remains a manual owner action. Physical iPhone and human-play
+acceptance checks are in [the device checklist](docs/DEVICE_CHECKLIST.md).
 
 ## Controls
 

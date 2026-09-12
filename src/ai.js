@@ -185,6 +185,12 @@ function opponentReplyPenalty(game, unit, move, settings) {
   if (settings.replyDepth <= 0) {
     return 0;
   }
+  // With only the two commanders left, every approach invites a duel. Treating
+  // that invitation as a forced loss makes equal-speed kings flee forever.
+  if (game.units.filter((candidate) => candidate.alive).length === 2 &&
+      game.units.filter((candidate) => candidate.alive).every((candidate) => UNIT_DEFS[candidate.type].isCommandUnit)) {
+    return 0;
+  }
 
   const faction = unitFaction(unit, UNIT_DEFS);
   const opponent = enemyFaction(faction);
@@ -218,12 +224,24 @@ function scoreBoardMove(game, unit, move, settings, rng) {
   const def = UNIT_DEFS[unit.type];
   const square = game.board[move.row][move.col];
   const control = getPowerNodeControl(game);
+  const allies = getLivingFactionUnits(game, faction);
+  const canWinByNodes = allies.length >= POWER_NODES.length;
   let score = rng() * (settings.id === "easy" ? 8 : settings.id === "standard" ? 2.5 : 0.8);
 
   const aligned = square.energy === factionEnergy(faction);
   const hostile = square.energy !== ENERGY.NEUTRAL && !aligned;
   score += aligned ? 8 : hostile ? -5 : 1;
-  score += Math.max(0, 7 - nearestNodeDistance(move.row, move.col)) * 1.65;
+  if (canWinByNodes) {
+    const objectives = POWER_NODES.filter(([row, col]) => {
+      const occupant = getUnitAt(game, row, col);
+      return !occupant || unitFaction(occupant, UNIT_DEFS) !== faction;
+    });
+    if (objectives.length) {
+      const distance = (position) => Math.min(...objectives.map(([row, col]) => manhattan(position, {row, col})));
+      score += Math.max(0, 7 - distance(move)) * 1.65;
+      score += (distance(unit) - distance(move)) * 4;
+    }
+  }
   if (move.row === unit.previousRow && move.col === unit.previousCol) {
     score -= 24;
   }
@@ -234,14 +252,17 @@ function scoreBoardMove(game, unit, move, settings, rng) {
     score -= Math.max(8, 22 - recency * 3);
   }
 
-  if (isPowerNode(move.row, move.col)) {
-    score += 34;
+  if (canWinByNodes) {
     const projected = projectedNodeCount(game, unit, move, faction);
+    // Reward net ownership, not repeatedly leaving and reclaiming one node.
+    score += (projected - control[faction]) * 34;
     if (projected === POWER_NODES.length) {
       score += 5000;
-    } else if (projected === POWER_NODES.length - 1) {
+    } else if (projected === POWER_NODES.length - 1 && projected > control[faction]) {
       score += 80;
     }
+  } else if (isPowerNode(move.row, move.col)) {
+    score += (1 - unit.hp / unit.maxHp) * 34;
   }
 
   if (control[opponent] === POWER_NODES.length - 1) {
@@ -258,7 +279,7 @@ function scoreBoardMove(game, unit, move, settings, rng) {
   const ownCommand = getLivingFactionUnits(game, faction).find(
     (candidate) => UNIT_DEFS[candidate.type].isCommandUnit,
   );
-  if (def.isCommandUnit && ownCommand) {
+  if (def.isCommandUnit && ownCommand && canWinByNodes) {
     const home = faction === FACTIONS.VOID ? { row: 0, col: 4 } : { row: 8, col: 4 };
     score -= Math.max(0, manhattan(move, home) - 2) * 11;
   }
@@ -268,6 +289,9 @@ function scoreBoardMove(game, unit, move, settings, rng) {
   );
   if (enemyCommand) {
     score += Math.max(0, 12 - manhattan(move, enemyCommand)) * 1.6;
+    // With fewer than five survivors, occupation victory is impossible. Bring
+    // the remaining pieces (including the commander) toward a decisive duel.
+    if (!canWinByNodes) score += (manhattan(unit, enemyCommand) - manhattan(move, enemyCommand)) * 12;
   }
 
   if (move.attack) {
@@ -307,7 +331,15 @@ function commandActionCandidates(game, faction) {
     }
   }
 
-  if (canUseCommandPower(game, faction, "gridLock")) {
+  // Grid Lock consumes the turn and expires at the full-round boundary. A Void
+  // lock expires immediately, before an opponent can attack. Empty/uncontested
+  // tiles likewise gain nothing from spending a whole turn on a temporary lock.
+  if (faction === FACTIONS.SOLAR && canUseCommandPower(game, faction, "gridLock")) {
+    const threatenedSquares = new Set(
+      getLivingFactionUnits(game, enemyFaction(faction)).flatMap((enemy) =>
+        legalMovesForUnit(game, enemy).filter((move) => move.attack)
+          .map((move) => `${move.row},${move.col}`)),
+    );
     for (let row = 0; row < game.board.length; row += 1) {
       for (let col = 0; col < game.board[row].length; col += 1) {
         const square = game.board[row][col];
@@ -315,6 +347,10 @@ function commandActionCandidates(game, faction) {
           continue;
         }
         const occupant = getUnitAt(game, row, col);
+        if (!occupant || unitFaction(occupant, UNIT_DEFS) !== faction ||
+            !threatenedSquares.has(`${row},${col}`)) {
+          continue;
+        }
         const nodeValue = square.node ? 22 : 0;
         const occupantValue = occupant && unitFaction(occupant, UNIT_DEFS) === faction ? 18 : 0;
         if (nodeValue || occupantValue) {
@@ -392,10 +428,27 @@ export function chooseBoardAiAction(game, rng = Math.random) {
   const difficulty = normalizeDifficulty(game.difficulty);
   const settings = DIFFICULTY_SETTINGS[difficulty];
   const faction = game.turn;
+  const position = game.units.filter((unit) => unit.alive)
+    .map((unit) => `${unit.id}:${unit.row},${unit.col}:${Math.round(unit.hp)}`).sort().join("|");
+  const history = game.aiPositionHistory[faction];
+  if (game.aiHistoryTurn !== game.turnCount) {
+    history.push(position);
+    if (history.length > 16) history.shift();
+    game.aiHistoryTurn = game.turnCount;
+  }
+  const repeats = Math.max(0, history.filter((prior) => prior === position).length - 1);
   const candidates = [
     ...commandActionCandidates(game, faction),
     ...supportActionCandidates(game, faction),
   ];
+  // A heal/corrupt or lock exchange that returns to the same living pieces and
+  // HP is not progress. After repetition, prefer breaking the exchange. Keep
+  // lethal Corruptor support available even in a repeated position.
+  for (const candidate of candidates) {
+    const actor = game.units.find((unit) => unit.id === candidate.unitId);
+    const target = game.units.find((unit) => unit.id === candidate.targetId);
+    if (!(actor?.type === "CB" && target?.hp <= 8)) candidate.score -= repeats * 40;
+  }
 
   for (const unit of getLivingFactionUnits(game, faction)) {
     for (const move of legalMovesForUnit(game, unit)) {

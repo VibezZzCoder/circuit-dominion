@@ -35,6 +35,7 @@ export class InputManager {
     };
 
     this.actions = this.defaultActions();
+    this.stickResets = [];
 
     window.addEventListener("keydown", (event) => this.onKeyDown(event));
     window.addEventListener("keyup", (event) => this.onKeyUp(event));
@@ -156,6 +157,14 @@ export class InputManager {
     let pointerId = null;
     let cx = 0;
     let cy = 0;
+    this.stickResets.push(() => {
+      const oldPointerId = pointerId;
+      pointerId = null;
+      this.clearTouchVector(role);
+      if (oldPointerId !== null && element.hasPointerCapture(oldPointerId)) {
+        element.releasePointerCapture(oldPointerId);
+      }
+    });
 
     const move = (event) => {
       if (pointerId !== event.pointerId) {
@@ -173,6 +182,7 @@ export class InputManager {
     };
 
     element.addEventListener("pointerdown", (event) => {
+      if (pointerId !== null) return;
       event.preventDefault();
       pointerId = event.pointerId;
       element.setPointerCapture(pointerId);
@@ -185,7 +195,8 @@ export class InputManager {
     element.addEventListener("pointermove", move);
 
     ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) => {
-      element.addEventListener(name, () => {
+      element.addEventListener(name, (event) => {
+        if (event.pointerId !== pointerId) return;
         pointerId = null;
         this.clearTouchVector(role);
       });
@@ -204,6 +215,7 @@ export class InputManager {
 
   resetAll() {
     this.keys = {};
+    this.stickResets.forEach((reset) => reset());
     this.clearTouchVector("p1");
     this.clearTouchVector("p2");
     this.touchAttackLatch.p1 = false;

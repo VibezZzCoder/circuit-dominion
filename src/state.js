@@ -57,6 +57,8 @@ export function createInitialState(mode = "ai", difficulty = "standard") {
       [FACTIONS.SOLAR]: 0,
       [FACTIONS.VOID]: 0,
     },
+    aiPositionHistory: { [FACTIONS.SOLAR]: [], [FACTIONS.VOID]: [] },
+    aiHistoryTurn: -1,
     board: [],
     units: [],
     selectedUnitId: null,
