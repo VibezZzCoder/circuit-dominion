@@ -1,9 +1,37 @@
 {
   "schemaVersion": 1,
   "license": "GPL-3.0-or-later",
-  "generatedBy": "OpenAI image generation plus local Pillow normalization",
+  "generatedBy": "OpenAI image generation; original assets locally normalized, cover sprites use unmodified generated PNGs with source-rectangle metadata",
   "notes": "Runtime assets are original generated art for Circuit Dominion. Procedural renderers remain as fallbacks.",
   "assets": [
+    {
+      "id": "environment.cover-horizontal",
+      "type": "environment-sprite",
+      "path": "assets/live/sprites/environment/cover-horizontal.png",
+      "nativeWidth": 1634,
+      "nativeHeight": 963,
+      "sourceRect": { "x": 62, "y": 49, "width": 1510, "height": 839 },
+      "drawWidth": 92,
+      "drawHeight": 54,
+      "anchor": { "x": 0, "y": 0 },
+      "offset": { "x": 0, "y": 0 },
+      "fallbackRendererId": "procedural-cover",
+      "notes": "AI-generated armored cover, selected for this project; source crop excludes transparent margins. Art fills the existing collision rectangle without changing physics. Not a claim of exclusive copyright in AI-generated pixels."
+    },
+    {
+      "id": "environment.cover-vertical",
+      "type": "environment-sprite",
+      "path": "assets/live/sprites/environment/cover-vertical.png",
+      "nativeWidth": 1034,
+      "nativeHeight": 1521,
+      "sourceRect": { "x": 48, "y": 82, "width": 936, "height": 1331 },
+      "drawWidth": 76,
+      "drawHeight": 112,
+      "anchor": { "x": 0, "y": 0 },
+      "offset": { "x": 0, "y": 0 },
+      "fallbackRendererId": "procedural-cover",
+      "notes": "AI-generated armored cover, selected for this project; source crop excludes transparent margins. Art fills the existing collision rectangle without changing physics. Not a claim of exclusive copyright in AI-generated pixels."
+    },
     {
       "id": "background.title-landscape",
       "type": "background",

@@ -36,7 +36,7 @@ export class AssetManager {
   registerManifest(manifest) {
     for (const asset of manifest.assets || []) {
       this.assets.set(asset.id, asset);
-      if (asset.path && (asset.type === "background" || asset.type === "unit-sprite" || asset.type === "sprite-sheet")) {
+      if (asset.path && ["background", "unit-sprite", "sprite-sheet", "environment-sprite"].includes(asset.type)) {
         this.loadImage(asset);
       }
     }

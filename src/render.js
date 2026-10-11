@@ -354,29 +354,7 @@ export class Renderer {
 
     if (combat) {
       for (const obstacle of combat.obstacles) {
-        ctx.fillStyle = "#07111ddd";
-        ctx.strokeStyle = combat.energy === "L" ? "#6dfcffaa" : combat.energy === "D" ? "#d56bffaa" : "#b9d4e6aa";
-        ctx.lineWidth = 2;
-        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-        ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-        ctx.clip();
-        ctx.globalAlpha = 0.28;
-        ctx.lineWidth = 1;
-        for (let offset = -obstacle.height; offset < obstacle.width + obstacle.height; offset += 12) {
-          ctx.beginPath();
-          ctx.moveTo(obstacle.x + offset, obstacle.y + obstacle.height);
-          ctx.lineTo(obstacle.x + offset + obstacle.height, obstacle.y);
-          ctx.stroke();
-        }
-        ctx.restore();
-        ctx.fillStyle = "#e9fbffcc";
-        ctx.font = "bold 10px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("COVER", obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+        this.drawCover(obstacle, combat.energy);
       }
 
       for (const barrier of combat.barriers) {
@@ -436,6 +414,47 @@ export class Renderer {
       }
     }
 
+    ctx.restore();
+  }
+
+  drawCover(obstacle, energy) {
+    const ctx = this.arenaCtx;
+    const id = obstacle.width >= obstacle.height ? "environment.cover-horizontal" : "environment.cover-vertical";
+    const sprite = this.assets?.getImage(id);
+    const source = this.assets?.getAsset(id)?.sourceRect;
+    ctx.save();
+    ctx.fillStyle = "#07111ddd";
+    ctx.strokeStyle = energy === "L" ? "#6dfcffaa" : energy === "D" ? "#d56bffaa" : "#b9d4e6aa";
+    ctx.lineWidth = 2;
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    if (sprite && source) {
+      // Crop transparent source padding, never expand the gameplay footprint.
+      ctx.drawImage(sprite, source.x, source.y, source.width, source.height,
+        obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(obstacle.x + 0.5, obstacle.y + 0.5, obstacle.width - 1, obstacle.height - 1);
+    } else {
+      // Readable cover remains available while optional art loads or fails.
+      ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      ctx.clip();
+      ctx.globalAlpha = 0.28;
+      ctx.lineWidth = 1;
+      for (let offset = -obstacle.height; offset < obstacle.width + obstacle.height; offset += 12) {
+        ctx.beginPath();
+        ctx.moveTo(obstacle.x + offset, obstacle.y + obstacle.height);
+        ctx.lineTo(obstacle.x + offset + obstacle.height, obstacle.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = "#e9fbffcc";
+      ctx.font = "bold 10px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("COVER", obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+    }
     ctx.restore();
   }
 

@@ -69,6 +69,7 @@ node scripts/sanity-tests.mjs
 node scripts/platform-tests.mjs
 node scripts/input-tests.mjs
 node scripts/combat-control-tests.mjs
+node scripts/cover-art-tests.mjs
 node scripts/matchup-simulations.mjs
 node scripts/build-release.mjs
 node scripts/release-tests.mjs
@@ -80,6 +81,11 @@ The build verifies source/release byte parity, exact filenames, the GPL notice,
 local assets, and the single-file output. Browser tests require Chrome/Chromium
 and localhost permissions. `node scripts/compare-hosted.mjs` compares public
 hosted files with the local release without changing anything remotely.
+
+For cover-art-only changes, `CD_E2E_ONLY_COVER=1 node scripts/browser-e2e-tests.mjs`
+checks rendered sprites, exact collision footprints, failed-image fallbacks,
+desktop/phone/tablet layouts, and source/release/embedded HTML over HTTP.
+It does not replace offline file-open or physical-device acceptance.
 
 For publication, use the generated `release/` contents, with its `index.html`
 as the online entry point. Include corresponding GPL source when distributing;
