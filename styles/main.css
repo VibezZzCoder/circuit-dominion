@@ -30,7 +30,7 @@ body {
 #gameRoot {
   height: 100%;
   overflow: hidden;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -212,6 +212,7 @@ h1 {
 }
 
 #board {
+  touch-action: none;
   width: 100%;
   height: 100%;
   display: block;
@@ -509,6 +510,8 @@ h1 {
 }
 
 .helpBox {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   max-width: 760px;
   width: min(760px, calc(100vw - 36px));
   max-height: calc(100dvh - 36px);
@@ -834,4 +837,216 @@ h1 {
 @media (max-height: 520px) and (orientation: landscape) {
   #titleScreen .hero, #endScreen .hero { max-height: 100%; overflow: auto; }
   .fighterPanel { min-width: 0; }
+}
+
+/* Controls update: combat owns a viewport, never a vertically scrolling page.
+   Paired HUDs and separate control lanes leave the entire arena visible. */
+[hidden] { display: none !important; }
+.versionTag {
+  margin: 0 0 12px;
+  color: var(--solar);
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.inputStatus { color: #c1d8e7; font-size: 13px; line-height: 1.4; margin: 12px 0; }
+.boardTools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+#board:focus-visible { outline: 2px solid var(--warn); outline-offset: 3px; }
+
+#combatScreen.active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  height: 100dvh;
+  min-height: 0;
+  gap: 7px;
+  overflow: hidden;
+}
+.combatTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 5px 10px;
+  min-width: 0;
+}
+.fighterPanel {
+  min-width: 0;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: linear-gradient(130deg, #0b1d2ded, #07111de0);
+}
+.solarPanel { border-color: #6dfcff66; }
+.voidPanel { border-color: #d56bff66; }
+.fighterHeading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fighterName { font-size: 13px; min-width: 0; }
+.roleTag { font-size: 10px; font-weight: 800; letter-spacing: .045em; white-space: nowrap; color: var(--solar); }
+.voidPanel .roleTag { color: var(--void); }
+.hpBox { height: 9px; margin-top: 5px; }
+.fighterMeters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fighterMeters > div { min-width: 0; }
+.meterLabel { display: block; font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdBox { height: 5px; margin-top: 2px; }
+.fighterSpecial, .fighterHint { display: none; }
+.combatContext { grid-column: 1 / -1; text-align: center; color: #b6cadc; font-size: 11px; line-height: 1.25; }
+.combatToolbar { display: flex; justify-content: space-between; gap: 8px; align-items: center; min-width: 0; }
+#combatMsg { min-width: 0; color: #ffe69b; font-size: 12px; line-height: 1.15; }
+.combatTools { display: flex; gap: 5px; flex: 0 0 auto; }
+.combatTools button, #pauseBtn { min-height: 44px; min-width: 50px; padding: 5px 8px; margin: 0; border-radius: 10px; font-size: 12px; }
+#combatExit { border-color: #94a9bd55; }
+#arenaWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  container-type: size;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 14px;
+  background: radial-gradient(ellipse, #102638, #02060c 76%);
+}
+#arena {
+  position: static;
+  width: min(100cqw, 184.615385cqh);
+  height: min(100cqh, 54.166667cqw);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 960 / 520;
+}
+.countdown { top: 50%; font-size: clamp(42px, 11vw, 94px); }
+.touchControls, .touchControls.singlePlayer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  width: 100%;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 1050px;
+}
+.touchControls.singlePlayer { grid-template-columns: minmax(0, 1fr); max-width: 520px; }
+.touchPlayer {
+  --control-accent: var(--solar);
+  display: grid;
+  grid-template-columns: minmax(82px, 1fr) 104px 76px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.voidControls { --control-accent: var(--void); }
+.stick {
+  height: 112px;
+  min-width: 0;
+  border-radius: 20px;
+  border-color: #6dfcff66;
+  background: radial-gradient(ellipse at center, #153649, #06101b);
+  overflow: hidden;
+  cursor: grab;
+}
+.voidControls .stick { border-color: #d56bff66; background: radial-gradient(ellipse at center, #291840, #0c0b18); }
+.stick::before { display: none; }
+.stickBase, .stickKnob {
+  position: absolute;
+  left: var(--stick-origin-x, 50%);
+  top: var(--stick-origin-y, 50%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+.stickBase { width: 66px; height: 66px; transform: translate(-50%, -50%); border: 1px solid #c5f7ff44; background: #ffffff04; }
+.stickKnob { width: 30px; height: 30px; transform: translate(calc(-50% + var(--stick-x, 0px)), calc(-50% + var(--stick-y, 0px))); background: #bbf4ff4d; border: 1px solid #bdf6ff88; box-shadow: 0 0 16px #6dfcff22; }
+.stick.is-active { border-color: var(--control-accent); cursor: grabbing; }
+.stick.is-active .stickKnob { background: var(--control-accent); box-shadow: 0 0 18px var(--control-accent); }
+.padLabel { position: absolute; bottom: 5px; left: 0; width: 100%; text-align: center; font-size: 10px; font-weight: bold; letter-spacing: .06em; pointer-events: none; color: #e6faff; }
+.padLabel span { display: block; font-size: 9px; font-weight: normal; color: #9db6c9; letter-spacing: 0; }
+.stick.is-active .padLabel { opacity: .3; }
+.bigBtn { min-width: 0; width: 100%; padding: 7px 4px; min-height: 52px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.firePad { height: 104px; position: relative; overflow: hidden; border-radius: 24px; border-color: var(--control-accent); background: radial-gradient(ellipse, #174b60, #071924); }
+.voidControls .firePad { background: radial-gradient(ellipse, #432463, #150c25); }
+.actionName { display: block; font-size: 13px; font-weight: bold; position: relative; z-index: 1; }
+.actionHint { display: block; font-size: 10px; color: #c0d7e8; margin-top: 4px; position: relative; z-index: 1; }
+.aimDot { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: #fff; opacity: 0; pointer-events: none; transform: translate(var(--aim-x, 0px), var(--aim-y, 0px)); }
+.firePad.is-active { box-shadow: 0 0 20px var(--control-accent) inset; }
+.firePad.is-active .aimDot { opacity: .6; }
+.specialBtn { height: 68px; border-color: #ffdc6377; background: linear-gradient(160deg, #493820, #17191c); }
+.specialBtn .actionName { font-size: 11px; }
+.specialBtn.is-ready { border-color: var(--warn); }
+.specialBtn.is-active { box-shadow: 0 0 18px #ffdc6388 inset; }
+.combatControlHint { color: #afc8da; text-align: center; font-size: 12px; line-height: 1.25; min-height: 15px; }
+
+@media (min-width: 901px) and (min-height: 521px) and (pointer: fine) {
+  html:not([data-input="touch"]) .touchControls { display: none; }
+  .fighterSpecial { display: block; font-size: 12px; line-height: 1.2; min-height: 0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 620px) {
+  #combatScreen.active { gap: 5px; }
+  .combatTop { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 6px; }
+  .fighterPanel { padding: 6px; }
+  .fighterHeading { display: block; }
+  .roleTag { display: block; font-size: 9px; margin-bottom: 2px; }
+  .fighterName { display: block; font-size: 12px; }
+  .fighterMeters { gap: 6px; }
+  .combatContext { font-size: 10px; }
+  .combatTools { gap: 4px; }
+  .combatTools button, #pauseBtn { min-width: 44px; font-size: 11px; padding: 5px; }
+  #combatMsg { font-size: 11px; }
+  .touchControls { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .touchPlayer { grid-template-columns: minmax(80px, 1fr) 104px 68px; gap: 7px; }
+  .touchControls:not(.singlePlayer) .stick { height: 82px; }
+  .touchControls:not(.singlePlayer) .firePad { height: 82px; }
+  .combatControlHint { font-size: 11px; }
+}
+@media (max-width: 620px) and (max-height: 740px) and (orientation: portrait) {
+  .touchPlayer { grid-template-columns: minmax(72px, 1fr) 88px 64px; gap: 6px; }
+  .stick, .firePad { height: 88px; }
+  .touchControls:not(.singlePlayer) .stick, .touchControls:not(.singlePlayer) .firePad { height: 66px; }
+  .touchControls:not(.singlePlayer) .specialBtn { height: 56px; }
+  .stickBase { width: 52px; height: 52px; }
+  .padLabel span { display: none; }
+  .actionName { font-size: 11px; }
+  .actionHint { font-size: 9px; }
+}
+
+/* In phone landscape the thumbs live beside, not below, the arena. The central
+   stage keeps its true aspect ratio and system buttons stay above the thumbs. */
+@media (max-height: 520px) and (orientation: landscape) {
+  #combatScreen.active { grid-template-rows: auto auto minmax(0, 1fr) 16px; gap: 4px; }
+  .combatTop { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 8px; }
+  .fighterPanel { padding: 4px 7px; }
+  .fighterHeading { display: flex; }
+  .fighterName { font-size: 12px; }
+  .roleTag { font-size: 9px; }
+  .hpBox { height: 6px; margin-top: 3px; }
+  .meterLabel { margin-top: 2px; font-size: 9px; }
+  .cdBox { height: 4px; }
+  .combatContext { font-size: 10px; }
+  #arenaWrap { grid-column: 1; grid-row: 3; width: calc(100% - 286px); justify-self: center; }
+  .touchControls, .touchControls.singlePlayer {
+    display: grid;
+    grid-column: 1;
+    grid-row: 3;
+    grid-template-columns: 132px minmax(0, 1fr) 132px;
+    max-width: none;
+    height: 100%;
+    gap: 0;
+    align-items: center;
+    pointer-events: none;
+  }
+  .touchPlayer { grid-template-columns: 74px 52px; gap: 6px; width: 132px; pointer-events: none; }
+  .touchPlayer > * { pointer-events: auto; }
+  .touchPlayer:first-child { grid-column: 1; }
+  .touchPlayer:last-child { grid-column: 3; }
+  .touchPlayer .stick { grid-column: 1 / -1; height: 72px; min-width: 0; }
+  .touchPlayer .firePad, .touchPlayer .specialBtn { height: 58px; min-width: 0; }
+  .touchControls.singlePlayer .touchPlayer { display: contents; }
+  .touchControls.singlePlayer .stick { grid-column: 1; grid-row: 1; width: 124px; height: 104px; align-self: center; }
+  .touchControls.singlePlayer .firePad { grid-column: 3; grid-row: 1; width: 76px; height: 96px; justify-self: start; align-self: center; }
+  .touchControls.singlePlayer .specialBtn { grid-column: 3; grid-row: 1; width: 52px; height: 66px; justify-self: end; align-self: center; }
+  .touchControls .actionName { font-size: 10px; }
+  .touchControls .actionHint { font-size: 9px; }
+  .padLabel { font-size: 9px; }
+  .padLabel span { display: none; }
+  .combatControlHint { grid-row: 4; font-size: 10px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hpFill, .cdFill, .attackCdFill { transition: none; }
 }

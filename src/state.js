@@ -45,6 +45,9 @@ export const FighterState = {
 export function createInitialState(mode = "ai", difficulty = "standard") {
   return {
     mode,
+    practice: false,
+    duelAiEnabled: false,
+    boardCursor: {row: 8, col: 0, visible: false},
     difficulty,
     turn: FACTIONS.SOLAR,
     topState: TopLevelState.TITLE,

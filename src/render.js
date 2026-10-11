@@ -17,10 +17,14 @@ export class Renderer {
     if (!rect.width || !rect.height) {
       return;
     }
-    const dpr = window.devicePixelRatio || 1;
-    this.boardCanvas.width = rect.width * dpr;
-    this.boardCanvas.height = rect.height * dpr;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
+    if (this.boardCanvas.width === width && this.boardCanvas.height === height) return false;
+    this.boardCanvas.width = width;
+    this.boardCanvas.height = height;
     this.boardCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
   }
 
   resizeArena() {
@@ -28,10 +32,23 @@ export class Renderer {
     if (!rect.width || !rect.height) {
       return;
     }
-    const dpr = window.devicePixelRatio || 1;
-    this.arenaCanvas.width = rect.width * dpr;
-    this.arenaCanvas.height = rect.height * dpr;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
+    if (this.arenaCanvas.width === width && this.arenaCanvas.height === height) return false;
+    this.arenaCanvas.width = width;
+    this.arenaCanvas.height = height;
     this.arenaCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  arenaPoint(event) {
+    const rect = this.arenaCanvas.getBoundingClientRect();
+    const scale = Math.min(rect.width / 960, rect.height / 520);
+    if (scale <= 0) return null;
+    const x = (event.clientX - rect.left - (rect.width - 960 * scale) / 2) / scale;
+    const y = (event.clientY - rect.top - (rect.height - 520 * scale) / 2) / scale;
+    return x >= 0 && x <= 960 && y >= 0 && y <= 520 ? {x, y} : null;
   }
 
   drawBoard(game) {
@@ -53,6 +70,14 @@ export class Renderer {
     this.drawBoardActionTargets(ctx, game, cell);
     this.drawSelectedUnitFrame(ctx, game, cell);
     this.drawBoardUnits(ctx, game, cell);
+    if (game.boardCursor?.visible) {
+      const {row, col} = game.boardCursor;
+      ctx.strokeStyle = "#ffdc63";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(col * cell + 6, row * cell + 6, cell - 12, cell - 12);
+      ctx.setLineDash([]);
+    }
 
     ctx.restore();
   }
@@ -294,11 +319,11 @@ export class Renderer {
     const height = this.arenaCanvas.clientHeight;
 
     ctx.clearRect(0, 0, width, height);
-    const sx = width / 960;
-    const sy = height / 520;
+    const scale = Math.min(width / 960, height / 520);
 
     ctx.save();
-    ctx.scale(sx, sy);
+    ctx.translate((width - 960 * scale) / 2, (height - 520 * scale) / 2);
+    ctx.scale(scale, scale);
 
     const arenaImage = this.assets?.getImage("background.combat-arena");
     if (arenaImage) {
@@ -420,6 +445,14 @@ export class Renderer {
 
     ctx.save();
     ctx.translate(fighter.x, fighter.y);
+    if (fighter.controller === "p1" || fighter.controller === "p2") {
+      ctx.fillStyle = solar ? "#06222bee" : "#240d35ee";
+      ctx.fillRect(-24, -61, 48, 18);
+      ctx.fillStyle = solar ? "#8effff" : "#f0b5ff";
+      ctx.font = "bold 13px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(fighter.controller === "p1" ? "YOU" : "P2", 0, -48);
+    }
     if (fighter.invisUntil > now) {
       ctx.globalAlpha = 0.42;
     }

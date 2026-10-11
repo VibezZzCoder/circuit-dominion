@@ -21,7 +21,7 @@ Full license text: see LICENSE in the project repository.
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Circuit Dominion</title>
 <link rel="icon" href="data:,">
 <style>
@@ -57,7 +57,7 @@ body {
 #gameRoot {
   height: 100%;
   overflow: hidden;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -239,6 +239,7 @@ h1 {
 }
 
 #board {
+  touch-action: none;
   width: 100%;
   height: 100%;
   display: block;
@@ -536,6 +537,8 @@ h1 {
 }
 
 .helpBox {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   max-width: 760px;
   width: min(760px, calc(100vw - 36px));
   max-height: calc(100dvh - 36px);
@@ -863,6 +866,218 @@ h1 {
   .fighterPanel { min-width: 0; }
 }
 
+/* Controls update: combat owns a viewport, never a vertically scrolling page.
+   Paired HUDs and separate control lanes leave the entire arena visible. */
+[hidden] { display: none !important; }
+.versionTag {
+  margin: 0 0 12px;
+  color: var(--solar);
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.inputStatus { color: #c1d8e7; font-size: 13px; line-height: 1.4; margin: 12px 0; }
+.boardTools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+#board:focus-visible { outline: 2px solid var(--warn); outline-offset: 3px; }
+
+#combatScreen.active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  height: 100dvh;
+  min-height: 0;
+  gap: 7px;
+  overflow: hidden;
+}
+.combatTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 5px 10px;
+  min-width: 0;
+}
+.fighterPanel {
+  min-width: 0;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: linear-gradient(130deg, #0b1d2ded, #07111de0);
+}
+.solarPanel { border-color: #6dfcff66; }
+.voidPanel { border-color: #d56bff66; }
+.fighterHeading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fighterName { font-size: 13px; min-width: 0; }
+.roleTag { font-size: 10px; font-weight: 800; letter-spacing: .045em; white-space: nowrap; color: var(--solar); }
+.voidPanel .roleTag { color: var(--void); }
+.hpBox { height: 9px; margin-top: 5px; }
+.fighterMeters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fighterMeters > div { min-width: 0; }
+.meterLabel { display: block; font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdBox { height: 5px; margin-top: 2px; }
+.fighterSpecial, .fighterHint { display: none; }
+.combatContext { grid-column: 1 / -1; text-align: center; color: #b6cadc; font-size: 11px; line-height: 1.25; }
+.combatToolbar { display: flex; justify-content: space-between; gap: 8px; align-items: center; min-width: 0; }
+#combatMsg { min-width: 0; color: #ffe69b; font-size: 12px; line-height: 1.15; }
+.combatTools { display: flex; gap: 5px; flex: 0 0 auto; }
+.combatTools button, #pauseBtn { min-height: 44px; min-width: 50px; padding: 5px 8px; margin: 0; border-radius: 10px; font-size: 12px; }
+#combatExit { border-color: #94a9bd55; }
+#arenaWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  container-type: size;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 14px;
+  background: radial-gradient(ellipse, #102638, #02060c 76%);
+}
+#arena {
+  position: static;
+  width: min(100cqw, 184.615385cqh);
+  height: min(100cqh, 54.166667cqw);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 960 / 520;
+}
+.countdown { top: 50%; font-size: clamp(42px, 11vw, 94px); }
+.touchControls, .touchControls.singlePlayer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  width: 100%;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 1050px;
+}
+.touchControls.singlePlayer { grid-template-columns: minmax(0, 1fr); max-width: 520px; }
+.touchPlayer {
+  --control-accent: var(--solar);
+  display: grid;
+  grid-template-columns: minmax(82px, 1fr) 104px 76px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.voidControls { --control-accent: var(--void); }
+.stick {
+  height: 112px;
+  min-width: 0;
+  border-radius: 20px;
+  border-color: #6dfcff66;
+  background: radial-gradient(ellipse at center, #153649, #06101b);
+  overflow: hidden;
+  cursor: grab;
+}
+.voidControls .stick { border-color: #d56bff66; background: radial-gradient(ellipse at center, #291840, #0c0b18); }
+.stick::before { display: none; }
+.stickBase, .stickKnob {
+  position: absolute;
+  left: var(--stick-origin-x, 50%);
+  top: var(--stick-origin-y, 50%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+.stickBase { width: 66px; height: 66px; transform: translate(-50%, -50%); border: 1px solid #c5f7ff44; background: #ffffff04; }
+.stickKnob { width: 30px; height: 30px; transform: translate(calc(-50% + var(--stick-x, 0px)), calc(-50% + var(--stick-y, 0px))); background: #bbf4ff4d; border: 1px solid #bdf6ff88; box-shadow: 0 0 16px #6dfcff22; }
+.stick.is-active { border-color: var(--control-accent); cursor: grabbing; }
+.stick.is-active .stickKnob { background: var(--control-accent); box-shadow: 0 0 18px var(--control-accent); }
+.padLabel { position: absolute; bottom: 5px; left: 0; width: 100%; text-align: center; font-size: 10px; font-weight: bold; letter-spacing: .06em; pointer-events: none; color: #e6faff; }
+.padLabel span { display: block; font-size: 9px; font-weight: normal; color: #9db6c9; letter-spacing: 0; }
+.stick.is-active .padLabel { opacity: .3; }
+.bigBtn { min-width: 0; width: 100%; padding: 7px 4px; min-height: 52px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.firePad { height: 104px; position: relative; overflow: hidden; border-radius: 24px; border-color: var(--control-accent); background: radial-gradient(ellipse, #174b60, #071924); }
+.voidControls .firePad { background: radial-gradient(ellipse, #432463, #150c25); }
+.actionName { display: block; font-size: 13px; font-weight: bold; position: relative; z-index: 1; }
+.actionHint { display: block; font-size: 10px; color: #c0d7e8; margin-top: 4px; position: relative; z-index: 1; }
+.aimDot { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: #fff; opacity: 0; pointer-events: none; transform: translate(var(--aim-x, 0px), var(--aim-y, 0px)); }
+.firePad.is-active { box-shadow: 0 0 20px var(--control-accent) inset; }
+.firePad.is-active .aimDot { opacity: .6; }
+.specialBtn { height: 68px; border-color: #ffdc6377; background: linear-gradient(160deg, #493820, #17191c); }
+.specialBtn .actionName { font-size: 11px; }
+.specialBtn.is-ready { border-color: var(--warn); }
+.specialBtn.is-active { box-shadow: 0 0 18px #ffdc6388 inset; }
+.combatControlHint { color: #afc8da; text-align: center; font-size: 12px; line-height: 1.25; min-height: 15px; }
+
+@media (min-width: 901px) and (min-height: 521px) and (pointer: fine) {
+  html:not([data-input="touch"]) .touchControls { display: none; }
+  .fighterSpecial { display: block; font-size: 12px; line-height: 1.2; min-height: 0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 620px) {
+  #combatScreen.active { gap: 5px; }
+  .combatTop { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 6px; }
+  .fighterPanel { padding: 6px; }
+  .fighterHeading { display: block; }
+  .roleTag { display: block; font-size: 9px; margin-bottom: 2px; }
+  .fighterName { display: block; font-size: 12px; }
+  .fighterMeters { gap: 6px; }
+  .combatContext { font-size: 10px; }
+  .combatTools { gap: 4px; }
+  .combatTools button, #pauseBtn { min-width: 44px; font-size: 11px; padding: 5px; }
+  #combatMsg { font-size: 11px; }
+  .touchControls { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .touchPlayer { grid-template-columns: minmax(80px, 1fr) 104px 68px; gap: 7px; }
+  .touchControls:not(.singlePlayer) .stick { height: 82px; }
+  .touchControls:not(.singlePlayer) .firePad { height: 82px; }
+  .combatControlHint { font-size: 11px; }
+}
+@media (max-width: 620px) and (max-height: 740px) and (orientation: portrait) {
+  .touchPlayer { grid-template-columns: minmax(72px, 1fr) 88px 64px; gap: 6px; }
+  .stick, .firePad { height: 88px; }
+  .touchControls:not(.singlePlayer) .stick, .touchControls:not(.singlePlayer) .firePad { height: 66px; }
+  .touchControls:not(.singlePlayer) .specialBtn { height: 56px; }
+  .stickBase { width: 52px; height: 52px; }
+  .padLabel span { display: none; }
+  .actionName { font-size: 11px; }
+  .actionHint { font-size: 9px; }
+}
+
+/* In phone landscape the thumbs live beside, not below, the arena. The central
+   stage keeps its true aspect ratio and system buttons stay above the thumbs. */
+@media (max-height: 520px) and (orientation: landscape) {
+  #combatScreen.active { grid-template-rows: auto auto minmax(0, 1fr) 16px; gap: 4px; }
+  .combatTop { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 8px; }
+  .fighterPanel { padding: 4px 7px; }
+  .fighterHeading { display: flex; }
+  .fighterName { font-size: 12px; }
+  .roleTag { font-size: 9px; }
+  .hpBox { height: 6px; margin-top: 3px; }
+  .meterLabel { margin-top: 2px; font-size: 9px; }
+  .cdBox { height: 4px; }
+  .combatContext { font-size: 10px; }
+  #arenaWrap { grid-column: 1; grid-row: 3; width: calc(100% - 286px); justify-self: center; }
+  .touchControls, .touchControls.singlePlayer {
+    display: grid;
+    grid-column: 1;
+    grid-row: 3;
+    grid-template-columns: 132px minmax(0, 1fr) 132px;
+    max-width: none;
+    height: 100%;
+    gap: 0;
+    align-items: center;
+    pointer-events: none;
+  }
+  .touchPlayer { grid-template-columns: 74px 52px; gap: 6px; width: 132px; pointer-events: none; }
+  .touchPlayer > * { pointer-events: auto; }
+  .touchPlayer:first-child { grid-column: 1; }
+  .touchPlayer:last-child { grid-column: 3; }
+  .touchPlayer .stick { grid-column: 1 / -1; height: 72px; min-width: 0; }
+  .touchPlayer .firePad, .touchPlayer .specialBtn { height: 58px; min-width: 0; }
+  .touchControls.singlePlayer .touchPlayer { display: contents; }
+  .touchControls.singlePlayer .stick { grid-column: 1; grid-row: 1; width: 124px; height: 104px; align-self: center; }
+  .touchControls.singlePlayer .firePad { grid-column: 3; grid-row: 1; width: 76px; height: 96px; justify-self: start; align-self: center; }
+  .touchControls.singlePlayer .specialBtn { grid-column: 3; grid-row: 1; width: 52px; height: 66px; justify-self: end; align-self: center; }
+  .touchControls .actionName { font-size: 10px; }
+  .touchControls .actionHint { font-size: 9px; }
+  .padLabel { font-size: 9px; }
+  .padLabel span { display: none; }
+  .combatControlHint { grid-row: 4; font-size: 10px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hpFill, .cdFill, .attackCdFill { transition: none; }
+}
+
 </style>
 </head>
 <body>
@@ -870,11 +1085,13 @@ h1 {
   <section id="titleScreen" class="screen active">
     <div class="hero">
       <h1>Circuit Dominion</h1>
+      <p class="versionTag">v0.2 · Controls Update</p>
       <p class="tagline">Solar Protocol and Void Core fight across a shifting 9×9 energy grid. Move like a board tactician, then settle captures in a real-time robot duel.</p>
       <div class="menu">
         <button class="primary" id="newAI">Player vs AI<br><span class="small">Recommended start</span></button>
         <button id="newPVP">Player vs Player<br><span class="small">Local controls</span></button>
         <button class="void" id="newAI2">Hard Challenge<br><span class="small">Hard AI</span></button>
+        <button id="practiceBtn">Combat Practice<br><span class="small">Learn the controls</span></button>
         <button id="howBtn">How to Play</button>
       </div>
       <label class="difficultyPicker">Solo difficulty
@@ -884,48 +1101,53 @@ h1 {
           <option value="hard">Hard</option>
         </select>
       </label>
-      <label style="justify-content:center"><input type="checkbox" id="duelAIToggle" checked> AI controls Void Core during duels</label>
+      <input type="checkbox" id="duelAIToggle" hidden aria-hidden="true">
+      <p id="inputStatus" class="inputStatus">Keyboard, mouse, touch, or controller. Choose Combat Practice to get comfortable.</p>
       <p class="small">No remote assets. Original local visuals, Canvas fallbacks, and generated Web Audio.</p>
     </div>
   </section>
 
   <section id="boardScreen" class="screen">
-    <div class="leftPane"><div class="boardWrap"><canvas id="board" width="900" height="900" aria-label="Circuit Dominion tactical board"></canvas></div></div>
+    <div class="leftPane"><div class="boardWrap"><canvas id="board" width="900" height="900" tabindex="0" aria-label="Circuit Dominion tactical board. Use arrow keys or a controller to select a square, then confirm."></canvas></div></div>
     <aside class="sidePane">
       <div class="card status"><h2>Turn</h2><div id="turnBadge"></div><div id="modeLabel" class="small"></div><div id="roundInfo" class="small"></div><div id="chargeInfo" class="small"></div><div id="threatInfo" class="threatInfo"></div></div>
       <div class="card"><h3>Selected Unit</h3><div id="selectedInfo">Select one of your robots.</div></div>
       <div class="card"><h3>Power Nodes</h3><div id="nodeInfo"></div></div>
       <div class="card commandCard"><h3>Command Network</h3><div id="commandInfo" class="small">Nodes charge tactical powers each round.</div><div class="commandButtons"><button id="gridLockBtn">Grid Lock · 1</button><button id="fieldRepairBtn">Field Repair · 1</button><button id="relayBtn">Emergency Relay · 2</button><button id="cancelCommandBtn">Cancel</button></div></div>
       <div class="card"><h3>Grid Key</h3><div class="legend"><span class="pill">☀ L Light</span><span class="pill">◇ N Flux</span><span class="pill">◆ D Dark</span></div><p class="small">Dashed cells are Flux and shift together each round. White = selected. Green = legal move. Red = attack. Gold = command target.</p></div>
-      <div class="card"><div id="log">Ready.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button id="boardHelp">Help</button><button id="muteBtn">Mute</button><button id="restartBtn">Restart</button></div></div>
+      <div class="card"><div id="log">Ready.</div><p id="boardControlHint" class="small">Tap a robot, then a highlighted square. Keyboard: arrows + Enter. Controller: D-pad + A.</p><div class="boardTools"><button id="boardHelp">Help</button><button id="muteBtn">Mute</button><button id="restartBtn">Restart</button><button id="boardExit">Menu</button></div></div>
     </aside>
   </section>
 
   <section id="combatScreen" class="screen">
     <div class="combatTop">
-      <div class="fighterPanel"><div class="fighterName" id="p1Name"></div><div class="hpBox"><div class="hpFill" id="p1HP"></div></div><div class="meterLabel">Basic reload</div><div class="cdBox"><div class="attackCdFill" id="p1AttackCD"></div></div><div class="meterLabel" id="p1SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p1CD"></div></div><div class="small fighterSpecial" id="p1SpecialInfo"></div><div class="small" id="p1Hint"></div></div>
-      <div class="centerPanel"><b>Duel Zone</b><div class="small">Combat modifier</div><div id="modText"></div><div id="combatMsg" class="small"></div><button id="pauseBtn">Pause</button></div>
-      <div class="fighterPanel"><div class="fighterName" id="p2Name"></div><div class="hpBox"><div class="hpFill" id="p2HP"></div></div><div class="meterLabel">Basic reload</div><div class="cdBox"><div class="attackCdFill" id="p2AttackCD"></div></div><div class="meterLabel" id="p2SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p2CD"></div></div><div class="small fighterSpecial" id="p2SpecialInfo"></div><div class="small" id="p2Hint"></div></div>
+      <div class="fighterPanel solarPanel"><div class="fighterHeading"><span class="roleTag" id="p1Role">YOU · SOLAR</span><span class="fighterName" id="p1Name"></span></div><div class="hpBox" aria-label="Solar health"><div class="hpFill" id="p1HP"></div></div><div class="fighterMeters"><div><div class="meterLabel">Reload</div><div class="cdBox"><div class="attackCdFill" id="p1AttackCD"></div></div></div><div><div class="meterLabel" id="p1SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p1CD"></div></div></div></div><div class="small fighterSpecial" id="p1SpecialInfo"></div><div class="small fighterHint" id="p1Hint"></div></div>
+      <div class="fighterPanel voidPanel"><div class="fighterHeading"><span class="roleTag" id="p2Role">AI · VOID</span><span class="fighterName" id="p2Name"></span></div><div class="hpBox" aria-label="Void health"><div class="hpFill" id="p2HP"></div></div><div class="fighterMeters"><div><div class="meterLabel">Reload</div><div class="cdBox"><div class="attackCdFill" id="p2AttackCD"></div></div></div><div><div class="meterLabel" id="p2SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p2CD"></div></div></div></div><div class="small fighterSpecial" id="p2SpecialInfo"></div><div class="small fighterHint" id="p2Hint"></div></div>
+      <div class="combatContext" id="modText"></div>
     </div>
+    <div class="combatToolbar"><div id="combatMsg" class="small" role="status"></div><div class="combatTools"><button id="pauseBtn">Pause</button><button id="combatHelp">Help</button><button id="combatMute">Mute</button><button id="combatExit">Menu</button></div></div>
     <div id="arenaWrap"><canvas id="arena" width="960" height="520" aria-label="Real time robot duel arena"></canvas><div id="countdown" class="countdown"></div></div>
     <div class="touchControls" id="touchControls">
-      <div class="stick" id="stick1" aria-label="Player 1 movement joystick"></div><button class="bigBtn" id="atk1">P1 Attack</button><button class="bigBtn" id="sp1">P1 Special</button>
-      <div class="stick" id="stick2" aria-label="Player 2 movement joystick"></div><button class="bigBtn p2touch" id="atk2">P2 Attack</button><button class="bigBtn p2touch" id="sp2">P2 Special</button>
+      <div class="touchPlayer solarControls" id="p1TouchGroup"><div class="stick" id="stick1" aria-label="Solar movement pad. Touch anywhere, then drag to move."><span class="stickBase"></span><span class="stickKnob"></span><span class="padLabel">MOVE<span>drag anywhere</span></span></div><button class="bigBtn firePad" id="atk1" aria-label="Solar: hold to fire, drag to aim"><span class="actionName">HOLD FIRE</span><span class="actionHint">drag to aim</span><span class="aimDot"></span></button><button class="bigBtn specialBtn" id="sp1"><span class="actionName">SPECIAL</span><span class="actionHint">Ready</span></button></div>
+      <div class="touchPlayer voidControls" id="p2TouchGroup"><div class="stick" id="stick2" aria-label="Void movement pad. Touch anywhere, then drag to move."><span class="stickBase"></span><span class="stickKnob"></span><span class="padLabel">P2 MOVE<span>drag anywhere</span></span></div><button class="bigBtn firePad" id="atk2" aria-label="Void: hold to fire, drag to aim"><span class="actionName">P2 FIRE</span><span class="actionHint">drag to aim</span><span class="aimDot"></span></button><button class="bigBtn specialBtn" id="sp2"><span class="actionName">SPECIAL</span><span class="actionHint">Ready</span></button></div>
     </div>
+    <div class="combatControlHint" id="combatControlHint">Move independently. Hold fire for aim assist, or drag the fire pad to aim.</div>
   </section>
 
   <section id="endScreen" class="screen">
-    <div class="hero"><h1 id="winnerTitle">Victory</h1><p id="winnerReason" class="tagline"></p><div class="menu"><button class="primary" id="endRestartAI">Restart vs AI</button><button id="endRestartPVP">Restart PvP</button><button id="endHelp">How to Play</button></div></div>
+    <div class="hero"><h1 id="winnerTitle">Victory</h1><p id="winnerReason" class="tagline"></p><div class="menu"><button class="primary" id="endRestartAI">Restart vs AI</button><button id="endRestartPVP">Restart PvP</button><button id="endHelp">How to Play</button><button id="endMenu">Main Menu</button></div></div>
   </section>
 
-  <div id="helpOverlay">
+  <div id="helpOverlay" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <div class="helpBox">
-      <h2>Circuit Dominion: quick rules</h2>
+      <h2 id="helpTitle">Circuit Dominion: quick rules</h2>
       <div class="helpGrid">
         <div><h3>Board</h3><p>Select one robot, then choose a highlighted square. Moving onto an enemy starts a duel. Units cannot pass through blockers except Glitch Wraith, which may phase through one occupied square.</p></div>
         <div><h3>Win</h3><p>Destroy the enemy Command Unit, or occupy every ⚡ Power Node at the end of your turn. The HUD warns when either side controls four.</p></div>
         <div><h3>Energy and Flux</h3><p>Aligned grids grant +8% HP and damage. Hostile grids reduce damage by 6%. The 27 dashed Flux cells shift together Neutral → Light → Neutral → Dark after each full round.</p></div>
-        <div><h3>Combat controls</h3><p>Movement also controls facing. Solar / P1: <span class="kbd">WASD</span>, <span class="kbd">Space/F</span> attack, <span class="kbd">Left Shift</span> special. Void / P2: <span class="kbd">Arrows</span>, <span class="kbd">Enter or /</span> attack, <span class="kbd">Right Shift</span> special. Aim, commit, dodge, and use cover.</p></div>
+        <div><h3>Touch combat</h3><p>Drag anywhere on MOVE to steer. Hold FIRE for repeated attacks with aim assist; drag on FIRE for manual aim while moving independently. Tap SPECIAL when ready. Release FIRE to return to aim assist. Practice from the title screen before playing a match.</p></div>
+        <div><h3>Keyboard and mouse</h3><p>Solar / P1: <span class="kbd">WASD</span> move, <span class="kbd">Space/F</span> fire, <span class="kbd">Left Shift</span> special. Point in the arena to aim. Void / P2: <span class="kbd">Arrows</span> move, <span class="kbd">Enter or /</span> fire, <span class="kbd">Right Shift</span> special. Without manual aim, firing tracks your opponent.</p></div>
+        <div><h3>Controller</h3><p>Left stick / D-pad moves. Right stick aims. Hold <span class="kbd">A / RT</span> to fire; <span class="kbd">X / LB</span> uses your special. <span class="kbd">Start</span> pauses in combat or opens actions on the board. On menus and the board, use D-pad + A to confirm and B to go back. In Help, D-pad scrolls; A/B closes. Press a button to connect; a second controller controls P2.</p></div>
         <div><h3>Nodes and commands</h3><p>Node occupants repair 12% HP after their faction turn. Nodes charge up to three Command points each round. Spend them on Grid Lock, Field Repair, or Emergency Relay while your commander lives.</p></div>
         <div><h3>Board abilities</h3><p>Pulse Medic repairs adjacent allies. Corruptor Bot damages and weakens adjacent enemies for their next two turns. These consume the turn.</p></div>
         <div><h3>Debug</h3><p><span class="kbd">`</span> toggles debug overlay. <span class="kbd">H</span> help, <span class="kbd">Esc</span> pause duel, <span class="kbd">R</span> restart match.</p></div>
@@ -1128,6 +1350,9 @@ const FighterState = {
 function createInitialState(mode = "ai", difficulty = "standard") {
   return {
     mode,
+    practice: false,
+    duelAiEnabled: false,
+    boardCursor: {row: 8, col: 0, visible: false},
     difficulty,
     turn: FACTIONS.SOLAR,
     topState: TopLevelState.TITLE,
@@ -2846,7 +3071,7 @@ function startCombat(game, attacker, defender, row, col) {
     overtimeStage: 0,
     nowMs: 0,
     rng: Math.random,
-    message: `Duel begins on ${String.fromCharCode(65 + col)}${row + 1}. Move to aim; controls unlock after countdown.`,
+    message: `Duel on ${String.fromCharCode(65 + col)}${row + 1}. ${game.mode === "pvp" ? "P1 Solar · P2 Void." : "You are Solar."} Get ready!`,
     modText: "",
     fighters: [attackerFighter, defenderFighter],
     projectiles: [],
@@ -2888,6 +3113,8 @@ function makeFighter(unit, slot, energy) {
     speed: def.speed,
     attackCooldown: 0,
     attackCooldownMax: def.attack.cooldown,
+    attackCount: 0,
+    specialCount: 0,
     specialCooldown: def.special.cooldown * 0.5,
     specialCooldownMax: def.special.cooldown,
     facingX: slot ? -1 : 1,
@@ -2928,9 +3155,7 @@ function shortModifierText(mod) {
 }
 
 function assignControllers(game, combat) {
-  const aiVoidInPvp =
-    typeof document !== "undefined" &&
-    Boolean(document.getElementById("duelAIToggle")?.checked);
+  const aiVoidInPvp = Boolean(game.duelAiEnabled);
 
   for (const fighter of combat.fighters) {
     const faction = UNIT_DEFS[fighter.unit.type].faction;
@@ -2943,11 +3168,11 @@ function assignControllers(game, combat) {
     }
 
     if (fighter.controller === "ai") {
-      fighter.controlHint = `${FACTION_NAMES[faction]} · ${game.difficulty} AI · movement controls facing`;
+      fighter.controlHint = `${FACTION_NAMES[faction]} · ${game.difficulty} AI`;
     } else if (fighter.controller === "p1") {
-      fighter.controlHint = `${FACTION_NAMES[faction]} · WASD aim/move · Space/F attack · Left Shift special`;
+      fighter.controlHint = "WASD move · hold Space/F fire · Left Shift special · mouse to aim";
     } else {
-      fighter.controlHint = `${FACTION_NAMES[faction]} · Arrows aim/move · Enter or / attack · Right Shift special`;
+      fighter.controlHint = "Arrows move · hold Enter or / fire · Right Shift special";
     }
   }
 
@@ -2961,6 +3186,7 @@ function assignControllers(game, combat) {
 
 function updateCombat(game, actions, deltaSec, nowMs, audio) {
   const combat = game.combat;
+  if (combat) combat.acceptedActions = [];
   if (!combat || combat.paused) {
     return null;
   }
@@ -2970,7 +3196,7 @@ function updateCombat(game, actions, deltaSec, nowMs, audio) {
     combat.state = "combatCountdown";
     combat.countdown = Math.max(0, combat.countdown - deltaSec);
     if (combat.countdown <= 0) {
-      combat.message = "Fight! Movement controls facing.";
+      combat.message = "Fight! Hold Fire to track your rival; move to dodge.";
       combat.state = "combatActive";
       audio.beep("countdown");
     }
@@ -3021,20 +3247,21 @@ function updateCombat(game, actions, deltaSec, nowMs, audio) {
 }
 
 function intentForFighter(game, fighter, opponent, combat, actions, nowMs) {
-  if (fighter.controller === "p1") {
+  if (fighter.controller === "p1" || fighter.controller === "p2") {
+    const role = fighter.controller;
+    const point = actions[`${role}AimPoint`];
+    const manualAim = Boolean(actions[`${role}ManualAim`] || point);
+    const useAttack = Boolean(actions[`${role}Attack`]);
+    const useSpecial = Boolean(actions[`${role}Special`]);
     return {
-      moveX: actions.p1MoveX,
-      moveY: actions.p1MoveY,
-      useAttack: actions.p1Attack,
-      useSpecial: actions.p1Special,
-    };
-  }
-  if (fighter.controller === "p2") {
-    return {
-      moveX: actions.p2MoveX,
-      moveY: actions.p2MoveY,
-      useAttack: actions.p2Attack,
-      useSpecial: actions.p2Special,
+      moveX: actions[`${role}MoveX`] || 0,
+      moveY: actions[`${role}MoveY`] || 0,
+      useAttack,
+      useSpecial,
+      aimX: point ? point.x - fighter.x : actions[`${role}AimX`] || 0,
+      aimY: point ? point.y - fighter.y : actions[`${role}AimY`] || 0,
+      manualAim,
+      assistAim: !manualAim && (useAttack || useSpecial),
     };
   }
   return getDuelAiIntent(fighter, opponent, combat, nowMs, game.difficulty, combat.rng);
@@ -3054,17 +3281,25 @@ function controlFighter(game, combat, fighter, opponent, actions, dt, nowMs, aud
     moveX /= magnitude;
     moveY /= magnitude;
   }
-  if (magnitude > 0.08 && !fighter.pendingAction && !fighter.dash) {
-    fighter.facingX = moveX / Math.max(0.001, Math.hypot(moveX, moveY));
-    fighter.facingY = moveY / Math.max(0.001, Math.hypot(moveX, moveY));
+  if (!fighter.pendingAction && !fighter.dash) {
+    const aimX = intent.manualAim ? intent.aimX : intent.assistAim ? opponent.x - fighter.x : moveX;
+    const aimY = intent.manualAim ? intent.aimY : intent.assistAim ? opponent.y - fighter.y : moveY;
+    const aimLength = Math.hypot(aimX, aimY);
+    if (aimLength > 0.08) {
+      fighter.facingX = aimX / aimLength;
+      fighter.facingY = aimY / aimLength;
+    }
+    fighter.aimMode = intent.manualAim ? "manual" : intent.assistAim ? "assist" : "move";
   }
 
   const busy = Boolean(fighter.pendingAction);
   const hardLocked = isFighterLocked(fighter);
+  // Preserve attack commitment. High mobility during windup disproportionately
+  // buffs heavy melee; responsiveness comes from input/aim and acceleration.
   const movementScale = hardLocked ? 0.12 : busy ? 0.5 : 1;
   const targetVx = moveX * fighter.speed * movementScale;
   const targetVy = moveY * fighter.speed * movementScale;
-  const response = Math.min(1, dt * 12);
+  const response = 1 - Math.exp(-dt * 18);
   fighter.vx += (targetVx - fighter.vx) * response;
   fighter.vy += (targetVy - fighter.vy) * response;
 
@@ -3072,10 +3307,11 @@ function controlFighter(game, combat, fighter, opponent, actions, dt, nowMs, aud
     fighter.state = magnitude > 0.05 ? FighterState.MOVE : FighterState.IDLE;
   }
   if (!busy && !hardLocked && !fighter.dash) {
-    if (intent.useSpecial) {
-      beginSpecial(fighter, combat, nowMs, audio);
-    } else if (intent.useAttack) {
-      beginAttack(fighter, combat, nowMs, audio);
+    // An unavailable special must never swallow an otherwise legal basic shot.
+    const usedSpecial = intent.useSpecial && beginSpecial(fighter, combat, nowMs, audio);
+    if (usedSpecial) combat.acceptedActions.push({role: fighter.controller, kind: "special"});
+    else if (intent.useAttack && beginAttack(fighter, combat, nowMs, audio)) {
+      combat.acceptedActions.push({role: fighter.controller, kind: "attack"});
     }
   }
 }
@@ -3128,7 +3364,7 @@ function progressAction(fighter, opponent, combat, nowMs, audio) {
 
 function beginAttack(fighter, combat, nowMs, audio) {
   if (fighter.attackCooldown > 0 || combat.state !== "combatActive") {
-    return;
+    return false;
   }
   const def = UNIT_DEFS[fighter.unit.type];
   const actionTiming = createActionTiming(def, "attack");
@@ -3136,6 +3372,8 @@ function beginAttack(fighter, combat, nowMs, audio) {
   scheduleAction(fighter, "attack", actionTiming, nowMs);
   setFighterState(fighter, FighterState.ATTACK_STARTUP, nowMs, actionTiming.startupMs);
   audio.beep("attack");
+  fighter.attackCount += 1;
+  return true;
 }
 
 function executeAttack(fighter, opponent, combat, audio) {
@@ -3156,7 +3394,7 @@ function executeAttack(fighter, opponent, combat, audio) {
 
 function beginSpecial(fighter, combat, nowMs, audio) {
   if (fighter.specialCooldown > 0 || combat.state !== "combatActive") {
-    return;
+    return false;
   }
   const def = UNIT_DEFS[fighter.unit.type];
   const actionTiming = createActionTiming(def, "special");
@@ -3166,6 +3404,8 @@ function beginSpecial(fighter, combat, nowMs, audio) {
   setFighterState(fighter, FighterState.SPECIAL_STARTUP, nowMs, actionTiming.startupMs);
   combat.message = `${def.name}: ${def.special.name}`;
   audio.beep("special");
+  fighter.specialCount += 1;
+  return true;
 }
 
 function executeSpecial(fighter, opponent, combat, nowMs, audio) {
@@ -3775,10 +4015,14 @@ class Renderer {
     if (!rect.width || !rect.height) {
       return;
     }
-    const dpr = window.devicePixelRatio || 1;
-    this.boardCanvas.width = rect.width * dpr;
-    this.boardCanvas.height = rect.height * dpr;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
+    if (this.boardCanvas.width === width && this.boardCanvas.height === height) return false;
+    this.boardCanvas.width = width;
+    this.boardCanvas.height = height;
     this.boardCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
   }
 
   resizeArena() {
@@ -3786,10 +4030,23 @@ class Renderer {
     if (!rect.width || !rect.height) {
       return;
     }
-    const dpr = window.devicePixelRatio || 1;
-    this.arenaCanvas.width = rect.width * dpr;
-    this.arenaCanvas.height = rect.height * dpr;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
+    if (this.arenaCanvas.width === width && this.arenaCanvas.height === height) return false;
+    this.arenaCanvas.width = width;
+    this.arenaCanvas.height = height;
     this.arenaCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  arenaPoint(event) {
+    const rect = this.arenaCanvas.getBoundingClientRect();
+    const scale = Math.min(rect.width / 960, rect.height / 520);
+    if (scale <= 0) return null;
+    const x = (event.clientX - rect.left - (rect.width - 960 * scale) / 2) / scale;
+    const y = (event.clientY - rect.top - (rect.height - 520 * scale) / 2) / scale;
+    return x >= 0 && x <= 960 && y >= 0 && y <= 520 ? {x, y} : null;
   }
 
   drawBoard(game) {
@@ -3811,6 +4068,14 @@ class Renderer {
     this.drawBoardActionTargets(ctx, game, cell);
     this.drawSelectedUnitFrame(ctx, game, cell);
     this.drawBoardUnits(ctx, game, cell);
+    if (game.boardCursor?.visible) {
+      const {row, col} = game.boardCursor;
+      ctx.strokeStyle = "#ffdc63";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(col * cell + 6, row * cell + 6, cell - 12, cell - 12);
+      ctx.setLineDash([]);
+    }
 
     ctx.restore();
   }
@@ -4052,11 +4317,11 @@ class Renderer {
     const height = this.arenaCanvas.clientHeight;
 
     ctx.clearRect(0, 0, width, height);
-    const sx = width / 960;
-    const sy = height / 520;
+    const scale = Math.min(width / 960, height / 520);
 
     ctx.save();
-    ctx.scale(sx, sy);
+    ctx.translate((width - 960 * scale) / 2, (height - 520 * scale) / 2);
+    ctx.scale(scale, scale);
 
     const arenaImage = this.assets?.getImage("background.combat-arena");
     if (arenaImage) {
@@ -4178,6 +4443,14 @@ class Renderer {
 
     ctx.save();
     ctx.translate(fighter.x, fighter.y);
+    if (fighter.controller === "p1" || fighter.controller === "p2") {
+      ctx.fillStyle = solar ? "#06222bee" : "#240d35ee";
+      ctx.fillRect(-24, -61, 48, 18);
+      ctx.fillStyle = solar ? "#8effff" : "#f0b5ff";
+      ctx.font = "bold 13px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(fighter.controller === "p1" ? "YOU" : "P2", 0, -48);
+    }
     if (fighter.invisUntil > now) {
       ctx.globalAlpha = 0.42;
     }
@@ -4407,242 +4680,468 @@ __modules["input"] = function () {
 // SPDX-License-Identifier: GPL-3.0-or-later
 const { clamp } = __require("utils");
 
-const KEY_BLOCKLIST = new Set([
-  "Space",
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "Enter",
-  "Slash",
-  "ShiftLeft",
-  "ShiftRight",
-  "KeyW",
-  "KeyA",
-  "KeyS",
-  "KeyD",
-]);
+const ROLES = ["p1", "p2"];
+const BUFFER_MS = { attack: 180, special: 220 };
+const PLAY_KEYS = new Set(["Space", "KeyF", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Slash", "ShiftLeft", "ShiftRight", "KeyW", "KeyA", "KeyS", "KeyD"]);
+const COMBAT_STATES = new Set(["combatIntro", "combatCountdown", "combatActive", "combatResolving"]);
+const DIRECTION_KEYS = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1] };
+
+function vector(x = 0, y = 0, deadzone = 0) {
+  x = Number.isFinite(x) ? x : 0;
+  y = Number.isFinite(y) ? y : 0;
+  const length = Math.hypot(x, y);
+  if (length <= deadzone) return { x: 0, y: 0 };
+  const scale = Math.min(1, (length - deadzone) / (1 - deadzone)) / length;
+  return { x: x * scale, y: y * scale };
+}
+
+function strongest(...vectors) {
+  return vectors.reduce((best, next) => Math.hypot(next.x, next.y) > Math.hypot(best.x, best.y) ? next : best, { x: 0, y: 0 });
+}
+
+function nativeKeyOwner(event) {
+  const target = event.target;
+  if (!target) return false;
+  const tag = target.tagName?.toUpperCase();
+  if (target.isContentEditable || tag === "TEXTAREA") return true;
+  if (tag === "INPUT") {
+    const type = (target.type || "text").toLowerCase();
+    if (!["checkbox", "radio", "range", "button", "submit", "reset"].includes(type)) return true;
+    if (["checkbox", "radio"].includes(type)) return event.code === "Space" || event.code.startsWith("Arrow");
+    if (type === "range") return event.code.startsWith("Arrow") || ["Home", "End", "PageUp", "PageDown"].includes(event.code);
+  }
+  if (tag === "SELECT") return event.code.startsWith("Arrow") || ["Space", "Enter", "Home", "End"].includes(event.code);
+  return (tag === "BUTTON" || tag === "A") && ["Space", "Enter"].includes(event.code);
+}
 
 class InputManager {
-  constructor({ getTopState }) {
+  constructor({ getTopState = () => "title", getMode = () => "ai", clock = () => performance.now(), getGamepads, onDeviceChange } = {}) {
     this.getTopState = getTopState;
+    this.getMode = getMode;
+    this.clock = clock;
+    this.readGamepads = getGamepads || (() => typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : []);
+    this.onDeviceChange = onDeviceChange;
+    this.lastDevice = window.matchMedia?.("(pointer: coarse)").matches ? "touch" : "keyboard";
     this.keys = {};
-    this.touch = {
-      p1: { x: 0, y: 0 },
-      p2: { x: 0, y: 0 },
-    };
-    this.touchAttackLatch = { p1: false, p2: false };
-    this.touchSpecialLatch = { p1: false, p2: false };
-    this.edge = {
-      pause: false,
-      restart: false,
-      toggleHelp: false,
-      toggleDebug: false,
-    };
-
-    this.actions = this.defaultActions();
+    this.blockedKeys = new Set();
+    this.touch = { p1: { x: 0, y: 0 }, p2: { x: 0, y: 0 } };
+    this.touchStickActive = { p1: false, p2: false };
+    this.touchAim = { p1: { x: 0, y: 0 }, p2: { x: 0, y: 0 } };
+    this.bufferedAim = { p1: null, p2: null };
+    this.pointerAim = { p1: null, p2: null };
+    this.touchHeld = { p1: { attack: new Set(), special: new Set() }, p2: { attack: new Set(), special: new Set() } };
+    this.pointerAttackHeld = { p1: false, p2: false };
+    this.buffers = { p1: { attack: -Infinity, special: -Infinity }, p2: { attack: -Infinity, special: -Infinity } };
+    this.bufferOwners = { p1: { attack: null, special: null }, p2: { attack: null, special: null } };
+    this.edge = {};
+    this.menuPress = { x: 0, y: 0 };
+    this.menuRepeat = { x: 0, y: 0, at: 0 };
+    this.gamepads = new Map();
+    this.bindings = new WeakMap();
     this.stickResets = [];
-
+    this.actions = this.defaultActions();
     window.addEventListener("keydown", (event) => this.onKeyDown(event));
     window.addEventListener("keyup", (event) => this.onKeyUp(event));
-    window.addEventListener("blur", () => this.resetAll());
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        this.resetAll();
-      }
+    window.addEventListener("pointerdown", (event) => {
+      this.noteDevice(event.pointerType === "touch" || event.pointerType === "pen" ? "touch" : "keyboard");
     });
+    window.addEventListener("blur", () => this.resetAll());
+    document.addEventListener("visibilitychange", () => { if (document.hidden) this.resetAll(); });
   }
 
   defaultActions() {
-    return {
-      p1MoveX: 0,
-      p1MoveY: 0,
-      p1Attack: false,
-      p1Special: false,
-      p2MoveX: 0,
-      p2MoveY: 0,
-      p2Attack: false,
-      p2Special: false,
-      pause: false,
-      restart: false,
-      toggleHelp: false,
-      toggleDebug: false,
-    };
+    const actions = { pause: false, restart: false, toggleHelp: false, toggleDebug: false, menuX: 0, menuY: 0, confirm: false, cancel: false, focusNext: false, gamepadDisconnected: false };
+    for (const role of ROLES) Object.assign(actions, { [`${role}MoveX`]: 0, [`${role}MoveY`]: 0, [`${role}Attack`]: false, [`${role}Special`]: false, [`${role}AimX`]: 0, [`${role}AimY`]: 0, [`${role}ManualAim`]: false, [`${role}AimPoint`]: null });
+    return actions;
+  }
+
+  isCombat() { return COMBAT_STATES.has(this.getTopState()); }
+
+  noteDevice(device) {
+    if (this.lastDevice === device) return;
+    this.lastDevice = device;
+    if (device !== "keyboard") this.pointerAim = { p1: null, p2: null };
+    this.onDeviceChange?.(device);
+  }
+
+  bufferAction(role, kind, owner = null) {
+    if (this.buffers[role] && kind in BUFFER_MS) {
+      this.buffers[role][kind] = this.clock() + BUFFER_MS[kind];
+      this.bufferOwners[role][kind] = owner;
+    }
+  }
+
+  // Combat owns legality. Call this only after scheduling the action, not on poll.
+  consumeCombatAction(role, kind) {
+    if (this.buffers[role] && kind in BUFFER_MS) {
+      this.buffers[role][kind] = -Infinity;
+      this.bufferOwners[role][kind] = null;
+      if (kind === "attack") this.bufferedAim[role] = null;
+    }
   }
 
   onKeyDown(event) {
+    if (nativeKeyOwner(event)) return;
+    const state = this.getTopState();
+    if ((this.isCombat() || state === "board") && PLAY_KEYS.has(event.code)) event.preventDefault();
+    if (event.repeat || this.keys[event.code]) return;
+    // A non-repeating keydown is a fresh press, including after a keyup was lost
+    // while another application had focus. OS repeat alone cannot revive a reset.
+    this.blockedKeys.delete(event.code);
     this.keys[event.code] = true;
-
-    if (event.code === "Escape") {
-      this.edge.pause = true;
+    this.noteDevice("keyboard");
+    if (event.code === "Escape") { this.edge.pause = true; this.edge.cancel = true; }
+    if (event.code === "KeyR") this.edge.restart = true;
+    if (event.code === "KeyH") this.edge.toggleHelp = true;
+    if (event.code === "Backquote") this.edge.toggleDebug = true;
+    if (!this.isCombat()) {
+      const direction = DIRECTION_KEYS[event.code];
+      if (direction) this.menuPress = { x: direction[0], y: direction[1] };
+      if (["Enter", "Space"].includes(event.code)) this.edge.confirm = true;
+      return;
     }
-    if (event.code === "KeyR") {
-      this.edge.restart = true;
-    }
-    if (event.code === "KeyH") {
-      this.edge.toggleHelp = true;
-    }
-    if (event.code === "Backquote") {
-      this.edge.toggleDebug = true;
-    }
-
-    const topState = this.getTopState();
-    const inPlay = topState && topState !== "title";
-    if (inPlay && KEY_BLOCKLIST.has(event.code)) {
-      event.preventDefault();
-    }
+    if (["Space", "KeyF"].includes(event.code)) this.bufferAction("p1", "attack");
+    if (event.code === "ShiftLeft") this.bufferAction("p1", "special");
+    if (["Enter", "Slash"].includes(event.code)) this.bufferAction("p2", "attack");
+    if (event.code === "ShiftRight") this.bufferAction("p2", "special");
   }
 
-  onKeyUp(event) {
-    this.keys[event.code] = false;
+  onKeyUp(event) { this.keys[event.code] = false; this.blockedKeys.delete(event.code); }
+
+  pollGamepads() {
+    let connected = [];
+    try { connected = Array.from(this.readGamepads() || []).filter((pad) => pad && pad.connected !== false); } catch { /* Browser policy may deny the API. Keyboard and touch remain usable. */ }
+    const indices = new Set(connected.map((pad) => pad.index));
+    for (const [index, state] of this.gamepads) {
+      if (!indices.has(index)) {
+        this.gamepads.delete(index);
+        for (const kind of ["attack", "special"]) {
+          if (this.bufferOwners[state.role][kind] === `pad:${index}`) this.consumeCombatAction(state.role, kind);
+        }
+        this.edge.gamepadDisconnected = true;
+      }
+    }
+    const result = { p1: { move: vector(), aim: vector(), attack: false }, p2: { move: vector(), aim: vector(), attack: false }, menu: vector() };
+    for (const pad of connected.sort((a, b) => a.index - b.index)) {
+      let state = this.gamepads.get(pad.index);
+      if (!state) {
+        const role = ROLES.find((candidate) => !Array.from(this.gamepads.values()).some((existing) => existing.role === candidate));
+        if (!role) continue;
+        state = { role, index: pad.index, id: pad.id || "Controller", mapping: pad.mapping || "unmapped", blocked: true, previous: [] };
+        this.gamepads.set(pad.index, state);
+      }
+      const buttons = Array.from(pad.buttons || [], (button) => typeof button === "number" ? button > 0.35 : Boolean(button?.pressed || button?.value > 0.35));
+      const axes = Array.from(pad.axes || [], (axis) => Number.isFinite(axis) ? clamp(axis, -1, 1) : 0);
+      const neutral = buttons.every((pressed) => !pressed) && axes.every((axis) => Math.abs(axis) < 0.22);
+      if (state.blocked) {
+        state.previous = buttons;
+        if (neutral) state.blocked = false;
+        continue;
+      }
+      const pressed = (index) => Boolean(buttons[index] && !state.previous[index]);
+      const move = vector((axes[0] || 0) + (buttons[15] ? 1 : 0) - (buttons[14] ? 1 : 0), (axes[1] || 0) + (buttons[13] ? 1 : 0) - (buttons[12] ? 1 : 0), 0.18);
+      const aim = vector(axes[2] || 0, axes[3] || 0, 0.22);
+      const attack = Boolean(buttons[0] || buttons[7]);
+      if (!neutral) this.noteDevice("gamepad");
+      result[state.role] = { move, aim, attack };
+      if (pressed(9)) this.edge.pause = true;
+      if (pressed(1)) this.edge.cancel = true;
+      if (pressed(3)) this.edge.toggleHelp = true;
+      if (this.isCombat()) {
+        if (pressed(0) || pressed(7)) this.bufferAction(state.role, "attack", `pad:${pad.index}`);
+        if (pressed(2) || pressed(4)) this.bufferAction(state.role, "special", `pad:${pad.index}`);
+      } else {
+        if (pressed(0)) this.edge.confirm = true;
+        if (pressed(5)) this.edge.focusNext = true;
+        result.menu = strongest(result.menu, move);
+      }
+      state.previous = buttons;
+    }
+    return result;
   }
 
   update() {
+    const now = this.clock();
+    const pad = this.pollGamepads();
+    const keyMoves = {
+      p1: vector((this.keys.KeyD ? 1 : 0) - (this.keys.KeyA ? 1 : 0), (this.keys.KeyS ? 1 : 0) - (this.keys.KeyW ? 1 : 0)),
+      p2: vector((this.keys.ArrowRight ? 1 : 0) - (this.keys.ArrowLeft ? 1 : 0), (this.keys.ArrowDown ? 1 : 0) - (this.keys.ArrowUp ? 1 : 0)),
+    };
     this.actions = this.defaultActions();
-
-    this.actions.p1MoveX = this.axis((this.keys.KeyD ? 1 : 0) - (this.keys.KeyA ? 1 : 0), this.touch.p1.x);
-    this.actions.p1MoveY = this.axis((this.keys.KeyS ? 1 : 0) - (this.keys.KeyW ? 1 : 0), this.touch.p1.y);
-    this.actions.p2MoveX = this.axis((this.keys.ArrowRight ? 1 : 0) - (this.keys.ArrowLeft ? 1 : 0), this.touch.p2.x);
-    this.actions.p2MoveY = this.axis((this.keys.ArrowDown ? 1 : 0) - (this.keys.ArrowUp ? 1 : 0), this.touch.p2.y);
-
-    this.actions.p1Attack = Boolean(this.keys.Space || this.keys.KeyF || this.touchAttackLatch.p1);
-    this.actions.p1Special = Boolean(this.keys.ShiftLeft || this.touchSpecialLatch.p1);
-    this.actions.p2Attack = Boolean(this.keys.Enter || this.keys.Slash || this.touchAttackLatch.p2);
-    this.actions.p2Special = Boolean(this.keys.ShiftRight || this.touchSpecialLatch.p2);
-
-    this.actions.pause = this.consumeEdge("pause");
-    this.actions.restart = this.consumeEdge("restart");
-    this.actions.toggleHelp = this.consumeEdge("toggleHelp");
-    this.actions.toggleDebug = this.consumeEdge("toggleDebug");
-
-    // Touch attack/special are edge-like, not held, to avoid auto-firing on mobile.
-    this.touchAttackLatch.p1 = false;
-    this.touchAttackLatch.p2 = false;
-    this.touchSpecialLatch.p1 = false;
-    this.touchSpecialLatch.p2 = false;
-
+    for (const role of ROLES) {
+      const move = strongest(keyMoves[role], this.touch[role], pad[role].move);
+      const bufferedAim = this.bufferedAim[role];
+      const aim = strongest(this.touchAim[role], pad[role].aim, bufferedAim?.until >= now ? bufferedAim : vector());
+      const keyboardAttack = role === "p1" ? this.keys.Space || this.keys.KeyF : this.keys.Enter || this.keys.Slash;
+      this.actions[`${role}MoveX`] = move.x;
+      this.actions[`${role}MoveY`] = move.y;
+      this.actions[`${role}Attack`] = Boolean(keyboardAttack || this.touchHeld[role].attack.size || this.pointerAttackHeld[role] || pad[role].attack || this.buffers[role].attack >= now);
+      this.actions[`${role}Special`] = this.buffers[role].special >= now;
+      this.actions[`${role}AimX`] = aim.x;
+      this.actions[`${role}AimY`] = aim.y;
+      this.actions[`${role}AimPoint`] = this.pointerAim[role] ? { ...this.pointerAim[role] } : null;
+      this.actions[`${role}ManualAim`] = Math.hypot(aim.x, aim.y) > 0 || Boolean(this.pointerAim[role]);
+    }
+    if (!this.isCombat()) {
+      const keyboardMenu = strongest(keyMoves.p1, keyMoves.p2);
+      const menu = strongest(keyboardMenu, pad.menu);
+      const x = Math.abs(menu.x) >= 0.5 ? Math.sign(menu.x) : 0;
+      const y = Math.abs(menu.y) >= 0.5 ? Math.sign(menu.y) : 0;
+      if (x !== this.menuRepeat.x || y !== this.menuRepeat.y) {
+        this.menuRepeat = { x, y, at: now + 320 };
+        this.actions.menuX = x;
+        this.actions.menuY = y;
+      } else if ((x || y) && now >= this.menuRepeat.at) {
+        this.actions.menuX = x;
+        this.actions.menuY = y;
+        this.menuRepeat.at = now + 120;
+      }
+      if (this.menuPress.x || this.menuPress.y) {
+        this.actions.menuX = this.menuPress.x;
+        this.actions.menuY = this.menuPress.y;
+      }
+    } else this.menuRepeat = { x: 0, y: 0, at: 0 };
+    this.menuPress = { x: 0, y: 0 };
+    for (const name of Object.keys(this.edge)) this.actions[name] = this.consumeEdge(name);
     return this.actions;
   }
 
-  axis(keyAxis, touchAxis) {
-    return clamp(keyAxis + touchAxis, -1, 1);
-  }
-
-  consumeEdge(name) {
-    const value = this.edge[name];
-    this.edge[name] = false;
-    return value;
-  }
+  consumeEdge(name) { const value = Boolean(this.edge[name]); this.edge[name] = false; return value; }
+  axis(keyAxis, touchAxis) { return clamp(keyAxis + touchAxis, -1, 1); }
 
   setTouchVector(role, x, y) {
-    if (!this.touch[role]) {
-      return;
-    }
-    this.touch[role].x = clamp(x, -1, 1);
-    this.touch[role].y = clamp(y, -1, 1);
+    if (!this.touch[role]) return;
+    this.touch[role] = vector(clamp(x, -1, 1), clamp(y, -1, 1));
+  }
+  clearTouchVector(role) { if (this.touch[role]) this.touch[role] = { x: 0, y: 0 }; }
+  triggerTouchAction(role, kind) { this.bufferAction(role, kind); }
+
+  setPointerAim(role, x, y) {
+    if (!ROLES.includes(role) || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    this.noteDevice("keyboard");
+    this.pointerAim[role] = { x, y };
+  }
+  clearPointerAim(role) { if (ROLES.includes(role)) this.pointerAim[role] = null; }
+  setPointerAttack(role, held) {
+    if (!ROLES.includes(role)) return;
+    if (held && !this.pointerAttackHeld[role]) this.bufferAction(role, "attack");
+    this.pointerAttackHeld[role] = Boolean(held);
   }
 
-  clearTouchVector(role) {
-    if (!this.touch[role]) {
-      return;
-    }
-    this.touch[role].x = 0;
-    this.touch[role].y = 0;
+  bindArenaPointer(element, role, { pointFromEvent } = {}) {
+    if (!element || !ROLES.includes(role)) return;
+    let pointerId = null;
+    const aim = (event) => {
+      if (event.pointerType !== "mouse" || !this.isCombat()) return;
+      const point = pointFromEvent?.(event);
+      if (point) this.setPointerAim(role, point.x, point.y);
+    };
+    const reset = () => {
+      const old = pointerId;
+      pointerId = null;
+      this.pointerAttackHeld[role] = false;
+      this.clearPointerAim(role);
+      this.safeRelease(element, old);
+    };
+    element.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse" || !this.isCombat()) return;
+      event.preventDefault();
+      aim(event);
+      if (event.button === 0 && pointerId === null) {
+        pointerId = event.pointerId;
+        this.pointerAttackHeld[role] = true;
+        this.bufferAction(role, "attack", element);
+        this.safeCapture(element, pointerId);
+      }
+    }, { passive: false });
+    // Pointerdown only fires for the first mouse button. Mousedown is required
+    // to accept right-click Special while left Fire is already held.
+    element.addEventListener("mousedown", (event) => {
+      if (event.button !== 2 || !this.isCombat()) return;
+      event.preventDefault();
+      const point = pointFromEvent?.(event);
+      if (point) this.setPointerAim(role, point.x, point.y);
+      this.bufferAction(role, "special", element);
+    });
+    element.addEventListener("pointermove", aim);
+    window.addEventListener("pointermove", (event) => { if (event.pointerId === pointerId) aim(event); });
+    element.addEventListener("pointerleave", () => { if (pointerId === null) this.clearPointerAim(role); });
+    const release = (event) => {
+      if (event.pointerId !== pointerId) return;
+      if (event.type !== "pointerup" && this.bufferOwners[role].attack === element) this.consumeCombatAction(role, "attack");
+      reset();
+      if (event.type === "pointerup") aim(event);
+    };
+    for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) element.addEventListener(name, release);
+    for (const name of ["pointerup", "pointercancel"]) window.addEventListener(name, release);
+    element.addEventListener("contextmenu", (event) => { if (this.isCombat()) event.preventDefault(); });
+    this.stickResets.push(reset);
   }
 
-  triggerTouchAction(role, kind) {
-    if (kind === "attack") {
-      this.touchAttackLatch[role] = true;
-    }
-    if (kind === "special") {
-      this.touchSpecialLatch[role] = true;
-    }
-  }
+  safeCapture(element, id) { try { element.setPointerCapture?.(id); } catch { /* Window release/move listeners keep control usable without capture. */ } }
+  safeRelease(element, id) { try { if (id !== null && element.hasPointerCapture?.(id)) element.releasePointerCapture?.(id); } catch { /* Capture may already be reclaimed. */ } }
+  setStyle(element, name, value) { element.style?.setProperty?.(name, value); }
 
   bindStick(element, role) {
+    if (!element || !ROLES.includes(role) || this.bindings.has(element)) return;
     let pointerId = null;
-    let cx = 0;
-    let cy = 0;
-    this.stickResets.push(() => {
-      const oldPointerId = pointerId;
+    let origin = { x: 0, y: 0 };
+    let radius = 28;
+    const reset = () => {
+      const old = pointerId;
       pointerId = null;
       this.clearTouchVector(role);
-      if (oldPointerId !== null && element.hasPointerCapture(oldPointerId)) {
-        element.releasePointerCapture(oldPointerId);
-      }
-    });
-
-    const move = (event) => {
-      if (pointerId !== event.pointerId) {
-        return;
-      }
-      event.preventDefault();
-      let dx = (event.clientX - cx) / 38;
-      let dy = (event.clientY - cy) / 38;
-      const mag = Math.hypot(dx, dy);
-      if (mag > 1) {
-        dx /= mag;
-        dy /= mag;
-      }
-      this.setTouchVector(role, dx, dy);
+      this.touchStickActive[role] = false;
+      element.classList?.remove("is-active");
+      this.setStyle(element, "--stick-x", "0px");
+      this.setStyle(element, "--stick-y", "0px");
+      this.setStyle(element, "--stick-origin-x", "50%");
+      this.setStyle(element, "--stick-origin-y", "50%");
+      this.safeRelease(element, old);
     };
-
+    const move = (event) => {
+      if (event.pointerId !== pointerId) return;
+      event.preventDefault();
+      const dx = event.clientX - origin.x;
+      const dy = event.clientY - origin.y;
+      // At a glass edge use only the reachable throw in that direction.
+      const viewportWidth = window.innerWidth || Infinity;
+      const viewportHeight = window.innerHeight || Infinity;
+      const throwX = Math.max(8, Math.min(radius, dx < 0 ? origin.x - 2 : viewportWidth - origin.x - 2));
+      const throwY = Math.max(8, Math.min(radius, dy < 0 ? origin.y - 2 : viewportHeight - origin.y - 2));
+      const v = vector(dx / throwX, dy / throwY, 0.1);
+      this.setTouchVector(role, v.x, v.y);
+      this.setStyle(element, "--stick-x", `${v.x * Math.min(radius, throwX)}px`);
+      this.setStyle(element, "--stick-y", `${v.y * Math.min(radius, throwY)}px`);
+    };
     element.addEventListener("pointerdown", (event) => {
-      if (pointerId !== null) return;
+      if (pointerId !== null || (event.pointerType === "mouse" && event.button !== 0)) return;
       event.preventDefault();
       pointerId = event.pointerId;
-      element.setPointerCapture(pointerId);
+      this.touchStickActive[role] = true;
       const rect = element.getBoundingClientRect();
-      cx = rect.left + rect.width / 2;
-      cy = rect.top + rect.height / 2;
-      move(event);
-    });
-
-    element.addEventListener("pointermove", move);
-
-    ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) => {
-      element.addEventListener(name, (event) => {
-        if (event.pointerId !== pointerId) return;
-        pointerId = null;
-        this.clearTouchVector(role);
-      });
-    });
+      radius = Math.max(12, Math.min(38, Math.min(rect.width, rect.height) * 0.3));
+      origin = { x: event.clientX, y: event.clientY };
+      this.clearTouchVector(role);
+      this.noteDevice(event.pointerType === "mouse" ? "keyboard" : "touch");
+      element.classList?.add("is-active");
+      this.setStyle(element, "--stick-origin-x", `${origin.x - rect.left}px`);
+      this.setStyle(element, "--stick-origin-y", `${origin.y - rect.top}px`);
+      this.safeCapture(element, pointerId);
+    }, { passive: false });
+    element.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointermove", move, { passive: false });
+    const release = (event) => { if (event.pointerId === pointerId) reset(); };
+    for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) element.addEventListener(name, release);
+    for (const name of ["pointerup", "pointercancel"]) window.addEventListener(name, release);
+    this.bindings.set(element, { type: "stick", reset });
+    this.stickResets.push(reset);
   }
 
-  bindTouchButton(element, role, kind) {
-    const activate = (event) => {
-      event.preventDefault();
-      this.triggerTouchAction(role, kind);
+  bindTouchButton(element, role, kind, { aim = kind === "attack" } = {}) {
+    if (!element || !ROLES.includes(role) || !(kind in BUFFER_MS)) return;
+    if (this.bindings.has(element)) return;
+    const binding = { type: "button", aim, role, kind };
+    let pointerId = null;
+    let origin = { x: 0, y: 0 };
+    let suppressClickUntil = -Infinity;
+    const reset = () => {
+      const old = pointerId;
+      pointerId = null;
+      this.touchHeld[role][kind].delete(element);
+      if (binding.aim) this.touchAim[role] = vector();
+      element.classList?.remove("is-active");
+      element.setAttribute?.("aria-pressed", "false");
+      this.setStyle(element, "--aim-x", "0px");
+      this.setStyle(element, "--aim-y", "0px");
+      this.safeRelease(element, old);
     };
-    // Bind pointerdown only. Binding both pointerdown and click made a single tap
-    // latch the action twice (once per event), double-firing attacks/specials.
-    element.addEventListener("pointerdown", activate, { passive: false });
+    element.addEventListener("pointerdown", (event) => {
+      if (pointerId !== null || element.disabled || (event.pointerType === "mouse" && event.button !== 0)) return;
+      event.preventDefault();
+      pointerId = event.pointerId;
+      origin = { x: event.clientX, y: event.clientY };
+      suppressClickUntil = this.clock() + 800;
+      this.touchHeld[role][kind].add(element);
+      this.bufferAction(role, kind, element);
+      this.noteDevice(event.pointerType === "mouse" ? "keyboard" : "touch");
+      element.classList?.add("is-active");
+      element.setAttribute?.("aria-pressed", "true");
+      this.safeCapture(element, pointerId);
+    }, { passive: false });
+    const move = (event) => {
+      if (event.pointerId !== pointerId || !binding.aim) return;
+      event.preventDefault();
+      const dx = event.clientX - origin.x;
+      const dy = event.clientY - origin.y;
+      const length = Math.hypot(dx, dy);
+      this.touchAim[role] = length > 9 ? { x: dx / length, y: dy / length } : vector();
+      this.setStyle(element, "--aim-x", `${length > 9 ? dx / length * Math.min(length, 22) : 0}px`);
+      this.setStyle(element, "--aim-y", `${length > 9 ? dy / length * Math.min(length, 22) : 0}px`);
+    };
+    element.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointermove", move, { passive: false });
+    const release = (event) => {
+      if (event.pointerId !== pointerId) return;
+      suppressClickUntil = this.clock() + 500;
+      if (event.type !== "pointerup" && this.bufferOwners[role][kind] === element) this.consumeCombatAction(role, kind);
+      if (event.type === "pointerup" && binding.aim && this.bufferOwners[role][kind] === element && Math.hypot(this.touchAim[role].x, this.touchAim[role].y) > 0) {
+        this.bufferedAim[role] = { ...this.touchAim[role], until: this.buffers[role][kind] };
+      }
+      reset();
+    };
+    for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) element.addEventListener(name, release);
+    for (const name of ["pointerup", "pointercancel"]) window.addEventListener(name, release);
+    element.addEventListener("click", (event) => {
+      // Pointer down already handled it. detail=0 is keyboard/assistive activation.
+      if (event.detail !== 0 || this.clock() < suppressClickUntil || element.disabled) return;
+      event.preventDefault();
+      this.bufferAction(role, kind);
+    });
+    binding.reset = reset;
+    this.bindings.set(element, binding);
+    this.stickResets.push(reset);
+  }
+
+  bindAimPad(element, role) {
+    const binding = this.bindings.get(element);
+    if (binding?.type === "button" && binding.role === role && binding.kind === "attack") binding.aim = true;
+    else this.bindTouchButton(element, role, "attack", { aim: true });
   }
 
   resetAll() {
+    for (const code of Object.keys(this.keys)) if (this.keys[code]) this.blockedKeys.add(code);
     this.keys = {};
     this.stickResets.forEach((reset) => reset());
-    this.clearTouchVector("p1");
-    this.clearTouchVector("p2");
-    this.touchAttackLatch.p1 = false;
-    this.touchAttackLatch.p2 = false;
-    this.touchSpecialLatch.p1 = false;
-    this.touchSpecialLatch.p2 = false;
-    this.edge.pause = false;
-    this.edge.restart = false;
-    this.edge.toggleHelp = false;
-    this.edge.toggleDebug = false;
+    for (const role of ROLES) {
+      this.clearTouchVector(role);
+      this.touchStickActive[role] = false;
+      this.touchAim[role] = vector();
+      this.bufferedAim[role] = null;
+      this.pointerAim[role] = null;
+      this.pointerAttackHeld[role] = false;
+      for (const kind of ["attack", "special"]) {
+        this.touchHeld[role][kind].clear();
+        this.buffers[role][kind] = -Infinity;
+        this.bufferOwners[role][kind] = null;
+      }
+    }
+    for (const state of this.gamepads.values()) state.blocked = true;
+    this.edge = {};
+    this.menuPress = { x: 0, y: 0 };
+    this.menuRepeat = { x: 0, y: 0, at: 0 };
     this.actions = this.defaultActions();
   }
 
   getSnapshot() {
     return {
       actions: { ...this.actions },
-      keysPressed: Object.keys(this.keys).filter((k) => this.keys[k]),
-      touch: {
-        p1: { ...this.touch.p1 },
-        p2: { ...this.touch.p2 },
-      },
+      keysPressed: Object.keys(this.keys).filter((key) => this.keys[key]),
+      touch: { p1: { ...this.touch.p1 }, p2: { ...this.touch.p2 } },
+      touchButtons: Object.fromEntries(ROLES.map((role) => [role, { attack: this.touchHeld[role].attack.size > 0, special: this.touchHeld[role].special.size > 0 }])),
+      touchActive: Object.fromEntries(ROLES.map((role) => [role, { move: this.touchStickActive[role], attack: this.touchHeld[role].attack.size > 0, special: this.touchHeld[role].special.size > 0 }])),
+      lastDevice: this.lastDevice,
+      gamepads: Array.from(this.gamepads.values(), ({ index, id, role, mapping, blocked }) => ({ index, id, role, mapping, blocked, connected: true })),
     };
   }
 }
@@ -4671,6 +5170,8 @@ class UIController {
       debugOverlay: byId("debugOverlay"),
       winnerTitle: byId("winnerTitle"),
       winnerReason: byId("winnerReason"),
+      endRestartAI: byId("endRestartAI"),
+      endRestartPVP: byId("endRestartPVP"),
       turnBadge: byId("turnBadge"),
       modeLabel: byId("modeLabel"),
       roundInfo: byId("roundInfo"),
@@ -4686,6 +5187,8 @@ class UIController {
       log: byId("log"),
       p1Name: byId("p1Name"),
       p2Name: byId("p2Name"),
+      p1Role: byId("p1Role"),
+      p2Role: byId("p2Role"),
       p1HP: byId("p1HP"),
       p2HP: byId("p2HP"),
       p1CD: byId("p1CD"),
@@ -4703,24 +5206,37 @@ class UIController {
       countdown: byId("countdown"),
       pauseBtn: byId("pauseBtn"),
       touchControls: byId("touchControls"),
+      p1TouchGroup: byId("p1TouchGroup"),
+      p2TouchGroup: byId("p2TouchGroup"),
       stick2: byId("stick2"),
       atk1: byId("atk1"),
       sp1: byId("sp1"),
       atk2: byId("atk2"),
       sp2: byId("sp2"),
       muteBtn: byId("muteBtn"),
+      combatMute: byId("combatMute"),
+      combatControlHint: byId("combatControlHint"),
+      inputStatus: byId("inputStatus"),
+      boardControlHint: byId("boardControlHint"),
       debugText: byId("debugText"),
     };
   }
 
   showScreen(screenId) {
+    const changed = this.currentScreen !== screenId;
     ["titleScreen", "boardScreen", "combatScreen", "endScreen"].forEach((id) => {
       this.refs[id].classList.toggle("active", id === screenId);
     });
+    if (changed) {
+      this.currentScreen = screenId;
+      this.root.defaultView?.scrollTo(0, 0);
+      this.refs[screenId].scrollTop = 0;
+    }
   }
 
   toggleHelp(on) {
     this.refs.helpOverlay.classList.toggle("active", on);
+    for (const id of ["titleScreen", "boardScreen", "combatScreen", "endScreen"]) this.refs[id].inert = on;
   }
 
   toggleDebug(on) {
@@ -4763,7 +5279,26 @@ class UIController {
     this.refs.cancelCommandBtn.disabled = !game.boardAction;
   }
 
-  updateCombatHud(game) {
+  updateInputStatus(snapshot = {}) {
+    const device = snapshot.lastDevice || "keyboard";
+    const pads = snapshot.gamepads || [];
+    const deviceName = device === "touch" ? "Touch" : device === "gamepad" ? "Controller" : "Keyboard + mouse";
+    if (this.root.documentElement) this.root.documentElement.dataset.input = device;
+    if (this.refs.inputStatus) {
+      this.refs.inputStatus.textContent = pads.length
+        ? `${deviceName} · ${pads.length} controller${pads.length === 1 ? "" : "s"} connected. Combat Practice is ready.`
+        : `${deviceName} ready. Controller: press a button to connect. Try Combat Practice.`;
+    }
+    if (this.refs.boardControlHint) {
+      this.refs.boardControlHint.textContent = device === "gamepad"
+        ? "D-pad / left stick: choose square · A: select / move · B: cancel · Start: actions"
+        : device === "touch"
+          ? "Tap a robot, then a highlighted square. Red squares begin a duel."
+          : "Click a robot, then a square. Or use arrows + Enter; Esc cancels. Tab reaches commands.";
+    }
+  }
+
+  updateCombatHud(game, inputSnapshot = {}) {
     const combat = game.combat;
     if (!combat) {
       return;
@@ -4771,6 +5306,9 @@ class UIController {
 
     const hudP1 = combat.fighters.find((fighter) => fighter.controller === "p1") || combat.fighters[0];
     const hudP2 = combat.fighters.find((fighter) => fighter !== hudP1 && (fighter.controller === "p2" || fighter.controller === "ai")) || combat.fighters.find((fighter) => fighter !== hudP1) || hudP1;
+    const hasHumanP2 = combat.fighters.some((fighter) => fighter.controller === "p2");
+    const device = inputSnapshot.lastDevice || "keyboard";
+    this.updateInputStatus(inputSnapshot);
 
     this.refs.p1HP.style.width = `${Math.max(0, (hudP1.hp / hudP1.maxHp) * 100)}%`;
     this.refs.p2HP.style.width = `${Math.max(0, (hudP2.hp / hudP2.maxHp) * 100)}%`;
@@ -4782,29 +5320,60 @@ class UIController {
 
     this.refs.countdown.textContent = combat.countdown > 0 ? String(Math.ceil(combat.countdown)) : "";
     this.refs.combatMsg.textContent = combat.message;
+    this.refs.combatMsg.title = combat.message;
     this.refs.modText.textContent = combat.modText;
+    this.refs.modText.title = combat.modText;
     this.refs.pauseBtn.textContent = combat.paused ? "Resume" : "Pause";
-    this.refs.p1Name.textContent = hudP1.label;
-    this.refs.p2Name.textContent = hudP2.label;
+    this.refs.p1Name.textContent = hudP1.label.split(" · ")[0];
+    this.refs.p2Name.textContent = hudP2.label.split(" · ")[0];
+    this.refs.p1Role.textContent = `${hasHumanP2 ? "P1" : "YOU"} · SOLAR`;
+    this.refs.p2Role.textContent = `${hasHumanP2 ? "P2" : "AI"} · VOID`;
     this.refs.p1Hint.textContent = hudP1.controlHint;
     this.refs.p2Hint.textContent = hudP2.controlHint;
     this.refs.p1SpecialName.textContent = hudP1.specialLabel.split(":")[0];
     this.refs.p2SpecialName.textContent = hudP2.specialLabel.split(":")[0];
     this.refs.p1SpecialInfo.textContent = hudP1.specialLabel;
     this.refs.p2SpecialInfo.textContent = hudP2.specialLabel;
-    this.refs.atk1.textContent = `${combat.touch.p1AttackLabel} Attack`;
-    this.refs.sp1.textContent = `${combat.touch.p1SpecialLabel} Special`;
-    this.refs.atk2.textContent = `${combat.touch.p2AttackLabel} Attack`;
-    this.refs.sp2.textContent = `${combat.touch.p2SpecialLabel} Special`;
+    for (const [fighter, fire, special, role] of [
+      [hudP1, this.refs.atk1, this.refs.sp1, "Solar"],
+      [hudP2, this.refs.atk2, this.refs.sp2, "Void"],
+    ]) {
+      const ready = fighter.specialCooldown <= 0;
+      const name = fighter.specialLabel.split(":")[0];
+      const readiness = ready ? "Ready" : `${fighter.specialCooldown.toFixed(1)}s`;
+      special.querySelector(".actionName").textContent = name;
+      special.querySelector(".actionHint").textContent = readiness;
+      special.classList.toggle("is-ready", ready);
+      special.setAttribute("aria-label", `${role} special: ${fighter.specialLabel}. ${readiness}`);
+      special.title = fighter.specialLabel;
+      fire.querySelector(".actionName").textContent = role === "Solar" ? "HOLD FIRE" : "P2 FIRE";
+      fire.setAttribute("aria-label", `${role}: hold to fire with aim assist, drag to aim manually`);
+    }
 
-    const hasHumanP2 = combat.fighters.some((fighter) => fighter.controller === "p2");
     this.refs.touchControls.classList.toggle("singlePlayer", !hasHumanP2);
+    this.refs.p2TouchGroup.hidden = !hasHumanP2;
     this.refs.stick2.hidden = !hasHumanP2;
     this.refs.atk2.hidden = !hasHumanP2;
     this.refs.sp2.hidden = !hasHumanP2;
+    const manualAim = inputSnapshot.actions?.p1ManualAim;
+    this.refs.combatControlHint.textContent = device === "touch"
+      ? "Drag MOVE · Hold FIRE for aim assist · Drag FIRE to aim · Tap Special"
+      : device === "gamepad"
+        ? "Left stick: move · Right stick: aim · A / RT: fire · X / LB: special · Start: pause"
+        : hasHumanP2
+          ? "P1 WASD + Space/F + L Shift · P2 arrows + Enter + R Shift · Aim assist unless manually aiming"
+          : `WASD move · Hold Space/F fire · Left Shift special · ${manualAim ? "Mouse aim active" : "Aim assist; point in arena for manual aim"}`;
   }
 
   updateEndScreen(game) {
+    this.refs.endRestartAI.textContent = game.practice ? "Retry Practice" : "Restart vs AI";
+    this.refs.endRestartPVP.hidden = Boolean(game.practice);
+    if (game.practice) {
+      this.refs.winnerTitle.textContent = game.winner === "S" ? "Practice Complete" : game.winner === "draw" ? "Mutual Shutdown" : "Try Again";
+      this.refs.winnerTitle.className = game.winner === "S" ? "solarText" : "";
+      this.refs.winnerReason.textContent = "Move and aim independently. Retry to practice another duel, or return to the menu for a full match.";
+      return;
+    }
     if (game.winner === "draw") {
       this.refs.winnerTitle.textContent = "Mutual Shutdown";
       this.refs.winnerTitle.className = "";
@@ -4819,6 +5388,7 @@ class UIController {
 
   setMuted(muted) {
     this.refs.muteBtn.textContent = muted ? "Unmute" : "Mute";
+    if (this.refs.combatMute) this.refs.combatMute.textContent = muted ? "Unmute" : "Mute";
   }
 
   updateDebugText(text) {
@@ -4895,24 +5465,37 @@ window.addEventListener("keydown", unlockAudio, true);
 const fpsTick = fpsMeter();
 let helpReturnState = TopLevelState.TITLE;
 let helpPausedCombat = false;
+let helpFocusReturn = null;
+let boardActionFocus = false;
+let viewportSize = {width: window.innerWidth, height: window.innerHeight};
+let lastViewportCheck = 0;
 
 const input = new InputManager({
   getTopState: () => game.topState,
+  getMode: () => game.mode,
+  onDeviceChange: (device) => { document.documentElement.dataset.input = device; },
 });
 
 input.bindStick(document.getElementById("stick1"), "p1");
 input.bindStick(document.getElementById("stick2"), "p2");
-input.bindTouchButton(document.getElementById("atk1"), "p1", "attack");
+input.bindAimPad(document.getElementById("atk1"), "p1");
 input.bindTouchButton(document.getElementById("sp1"), "p1", "special");
-input.bindTouchButton(document.getElementById("atk2"), "p2", "attack");
+input.bindAimPad(document.getElementById("atk2"), "p2");
 input.bindTouchButton(document.getElementById("sp2"), "p2", "special");
+input.bindArenaPointer(arenaCanvas, "p1", {pointFromEvent: event => renderer.arenaPoint(event)});
 
 function selectedDifficulty() {
   return normalizeDifficulty(document.getElementById("difficultySelect")?.value || game.difficulty);
 }
 
 function startNewGame(mode, difficulty = selectedDifficulty()) {
+  const muted = game.muted;
   game = createInitialState(mode, normalizeDifficulty(difficulty));
+  game.muted = muted;
+  document.getElementById("duelAIToggle").checked = false;
+  ui.toggleHelp(false);
+  helpPausedCombat = false;
+  boardActionFocus = false;
   game.board = createBoardGrid(game.fluxPhase);
   spawnInitialUnits(game);
   transitionTopState(game, TopLevelState.BOARD, "start game");
@@ -4924,16 +5507,35 @@ function startNewGame(mode, difficulty = selectedDifficulty()) {
   platform.focusGame();
 }
 
+function startPractice() {
+  startNewGame("ai", "easy");
+  game.practice = true;
+  const attacker = game.units.find((unit) => unit.type === "AS");
+  const defender = game.units.find((unit) => unit.type === "EC");
+  startDuelFromBoard(attacker, defender, 4, 4);
+  game.combat.message = "Practice · Solar is yours. Try move + hold Fire together.";
+  syncUi();
+}
+
 function returnToTitle() {
+  const muted = game.muted;
   game = createInitialState("ai", selectedDifficulty());
+  game.muted = muted;
+  ui.toggleHelp(false);
+  helpPausedCombat = false;
+  boardActionFocus = false;
   transitionTopState(game, TopLevelState.TITLE, "return title");
   helpReturnState = TopLevelState.TITLE;
   input.resetAll();
   syncUi();
+  document.getElementById("newAI").focus({preventScroll:true});
 }
 
 function setHelpVisible(on) {
+  input.resetAll();
   if (on) {
+    if (game.topState === TopLevelState.HELP) return;
+    helpFocusReturn = document.activeElement;
     helpReturnState = game.topState;
     // Freeze an active duel behind the overlay so the fight does not keep
     // dealing damage (and so the combat-state sync does not flip topState off HELP).
@@ -4942,7 +5544,9 @@ function setHelpVisible(on) {
       game.combat.paused = true;
     }
     ui.toggleHelp(true);
+    document.querySelector(".helpBox").scrollTop = 0;
     transitionTopState(game, TopLevelState.HELP, "open help");
+    document.getElementById("closeHelp").focus({preventScroll:true});
   } else {
     ui.toggleHelp(false);
     transitionTopState(game, helpReturnState, "close help");
@@ -4950,10 +5554,129 @@ function setHelpVisible(on) {
       game.combat.paused = false;
     }
     helpPausedCombat = false;
+    if (game.combat && !game.combat.paused) platform.focusGame();
+    else if (helpFocusReturn?.isConnected) helpFocusReturn.focus({preventScroll:true});
+  }
+}
+
+function setPaused(paused, reason = "Paused") {
+  if (!game.combat) return;
+  input.resetAll();
+  game.combat.paused = paused;
+  transitionTopState(game, paused ? TopLevelState.PAUSED :
+    game.combat.countdown > 0 ? TopLevelState.COMBAT_COUNTDOWN :
+    game.combat.state === "combatResolving" ? TopLevelState.COMBAT_RESOLVING : TopLevelState.COMBAT_ACTIVE,
+    paused ? "pause" : "resume");
+  game.combat.message = paused ? `${reason} · Resume when ready.` : "Fight! Hold Fire; move to dodge.";
+  if (paused) document.getElementById("pauseBtn").focus({preventScroll:true});
+  else platform.focusGame();
+}
+
+function suspendPlay(reason) {
+  input.resetAll();
+  if (!game.combat) return;
+  if (game.topState === TopLevelState.HELP) {
+    // Closing Help after returning to the app must not silently resume a fight.
+    helpPausedCombat = false;
+    helpReturnState = TopLevelState.PAUSED;
+    game.combat.paused = true;
+    game.combat.message = `${reason} · Resume when ready.`;
+  } else if (!game.combat.paused) setPaused(true, reason);
+}
+
+function checkViewport() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (Math.abs(width - viewportSize.width) < 2 && Math.abs(height - viewportSize.height) < 2) return;
+  const rotated = (width > height) !== (viewportSize.width > viewportSize.height);
+  viewportSize = {width, height};
+  const snapshot = input.getSnapshot();
+  const touchHeld = Object.values(snapshot.touchActive || {}).some(state => Object.values(state).some(Boolean));
+  if (rotated || touchHeld) suspendPlay("Layout changed");
+  else input.resetAll();
+  renderer.resizeBoard();
+  renderer.resizeArena();
+}
+
+function focusControl(control, pad = false) {
+  document.querySelectorAll("[data-pad-focus]").forEach(element => element.removeAttribute("data-pad-focus"));
+  if (!control) return;
+  if (pad) control.setAttribute("data-pad-focus", "true");
+  control.focus({preventScroll:true});
+  control.scrollIntoView({block:"nearest",inline:"nearest"});
+}
+
+function navigationControls() {
+  const surface = game.topState === TopLevelState.HELP ? document.getElementById("helpOverlay") :
+    game.topState === TopLevelState.BOARD ? document.querySelector(".sidePane") :
+    game.combat ? document.querySelector(".combatToolbar") || document.getElementById("combatScreen") :
+    document.querySelector(".screen.active");
+  return [...(surface?.querySelectorAll("button, select, input:not([type=hidden])") || [])]
+    .filter(element => !element.disabled && !element.closest("[hidden]") && element.getBoundingClientRect().width > 0);
+}
+
+function navigateInterface(actions) {
+  const pad = input.getSnapshot().lastDevice === "gamepad";
+  const board = game.topState === TopLevelState.BOARD;
+  const focusedUi = document.activeElement?.matches("button,select,input");
+  if (board && !boardActionFocus && (!focusedUi || pad)) {
+    if (actions.menuX || actions.menuY) {
+      game.boardCursor.visible = true;
+      game.boardCursor.row = Math.max(0, Math.min(8, game.boardCursor.row + Math.sign(actions.menuY || 0)));
+      game.boardCursor.col = Math.max(0, Math.min(8, game.boardCursor.col + Math.sign(actions.menuX || 0)));
+      platform.focusGame();
+    }
+    if (actions.confirm) {
+      game.boardCursor.visible = true;
+      handleBoardClick(game.boardCursor.row, game.boardCursor.col);
+    }
+    if (actions.cancel) {
+      clearSelection(game); game.boardAction = null;
+      pushLog(game, "Selection cleared. Choose a robot.");
+    }
+    return;
+  }
+  const menu = [TopLevelState.TITLE, TopLevelState.GAME_OVER, TopLevelState.HELP, TopLevelState.PAUSED].includes(game.topState) || (board && boardActionFocus);
+  if (!menu) return;
+  if (actions.cancel) {
+    if (game.topState === TopLevelState.HELP) setHelpVisible(false);
+    else if (board) {boardActionFocus = false; platform.focusGame();}
+    else if (game.combat) setPaused(false);
+    return;
+  }
+  // Native keyboard focus/activation remains the browser's responsibility.
+  if (!pad) return;
+  if (game.topState === TopLevelState.HELP) {
+    if (actions.menuY || actions.menuX) {
+      document.querySelector(".helpBox").scrollTop += Math.sign(actions.menuY || actions.menuX) * 120;
+    }
+    if (actions.confirm) setHelpVisible(false);
+    return;
+  }
+  const controls = navigationControls();
+  if (!controls.length) return;
+  let index = controls.indexOf(document.activeElement);
+  if (actions.menuX && document.activeElement?.tagName === "SELECT") {
+    const select = document.activeElement;
+    select.selectedIndex = Math.max(0, Math.min(select.options.length - 1, select.selectedIndex + Math.sign(actions.menuX)));
+    select.dispatchEvent(new Event("change", {bubbles:true}));
+  } else if (actions.menuX || actions.menuY || actions.focusNext) {
+    index = (index + Math.sign(actions.menuY || actions.menuX || 1) + controls.length) % controls.length;
+    focusControl(controls[index], true);
+  } else if (index < 0) {
+    index = 0; focusControl(controls[index], true);
+  }
+  if (actions.confirm && index >= 0) {
+    const control = controls[index];
+    if (control.tagName === "SELECT") {
+      control.selectedIndex = (control.selectedIndex + 1) % control.options.length;
+      control.dispatchEvent(new Event("change", {bubbles:true}));
+    } else control.click();
   }
 }
 
 function setGameOver(winner, reason) {
+  input.resetAll();
   markWinner(game, winner, reason);
   transitionTopState(game, TopLevelState.GAME_OVER, "win condition");
   pushLog(game, reason, "info");
@@ -5018,6 +5741,9 @@ function beginCommandPower(power) {
   game.selectedUnitId = null;
   game.legalMoves = [];
   game.boardAction = { type: power, sourceUnitId: null };
+  boardActionFocus = false;
+  game.boardCursor.visible = input.getSnapshot().lastDevice === "gamepad";
+  platform.focusGame();
   const instructions = {
     gridLock: "Grid Lock: choose any dashed Flux square.",
     fieldRepair: "Field Repair: choose a damaged non-command ally.",
@@ -5080,6 +5806,8 @@ function startDuelFromBoard(attacker, defender, row, col) {
   setBoardTurnState(game, BoardTurnState.STARTING_COMBAT, "move into attack");
   startCombat(game, attacker, defender, row, col);
   input.resetAll();
+  boardActionFocus = false;
+  platform.focusGame();
   audio.beep("attack");
   renderer.resizeArena();
 }
@@ -5233,45 +5961,56 @@ function executeBoardAiChoice(choice) {
 }
 
 function handleGlobalActions(actions) {
-  if (actions.pause && game.topState === TopLevelState.HELP) {
+  if (actions.gamepadDisconnected) {
+    suspendPlay("Controller disconnected");
+    return true;
+  }
+  if ((actions.pause || actions.cancel) && game.topState === TopLevelState.HELP) {
     // Escape dismisses the modal through its normal restoration path; it must
     // not unpause combat behind an overlay that remains visible.
     setHelpVisible(false);
-    input.resetAll();
-    return;
+    return true;
   }
   if (actions.toggleHelp) {
     const willOpen = !document.getElementById("helpOverlay").classList.contains("active");
     setHelpVisible(willOpen);
-    input.resetAll();
+    return true;
   }
 
   if (actions.toggleDebug) {
     game.debug.enabled = !game.debug.enabled;
     ui.toggleDebug(game.debug.enabled);
     input.resetAll();
+    return true;
   }
 
   if (actions.restart && game.topState !== TopLevelState.TITLE) {
-    startNewGame(game.mode, game.difficulty);
+    if (game.practice) startPractice();
+    else startNewGame(game.mode, game.difficulty);
+    return true;
   }
 
   if (actions.pause && game.combat) {
-    game.combat.paused = !game.combat.paused;
-    if (game.combat.paused) {
-      transitionTopState(game, TopLevelState.PAUSED, "combat pause");
-      game.combat.message = "Paused";
-    } else {
-      transitionTopState(game, TopLevelState.COMBAT_ACTIVE, "combat resume");
-      game.combat.message = "Fight!";
-    }
-    input.resetAll();
+    setPaused(!game.combat.paused);
+    return true;
   }
+  if (actions.pause && game.topState === TopLevelState.BOARD && input.getSnapshot().lastDevice === "gamepad") {
+    boardActionFocus = !boardActionFocus;
+    input.resetAll();
+    if (boardActionFocus) focusControl(navigationControls()[0], true);
+    else platform.focusGame();
+    return true;
+  }
+  return false;
 }
 
 function updateGame(deltaSec) {
-  const actions = input.update();
-  handleGlobalActions(actions);
+  let actions = input.update();
+  const previousState = game.topState;
+  const consumed = handleGlobalActions(actions);
+  if (!consumed) navigateInterface(actions);
+  // A menu/board confirmation cannot leak into the newly entered fight.
+  if (consumed || previousState !== game.topState) actions = input.defaultActions();
 
   if (game.topState === TopLevelState.BOARD) {
     runBoardAiTick();
@@ -5281,6 +6020,9 @@ function updateGame(deltaSec) {
     const duelDelta = game.debug.slowMo ? deltaSec * 0.4 : deltaSec;
     const duelNow = game.combat.nowMs + (game.combat.paused ? 0 : duelDelta * 1000);
     const result = updateCombat(game, actions, duelDelta, duelNow, audio);
+    for (const accepted of game.combat?.acceptedActions || []) {
+      input.consumeCombatAction(accepted.role, accepted.kind);
+    }
 
     if (game.combat?.paused) {
       if (game.topState !== TopLevelState.HELP) transitionTopState(game, TopLevelState.PAUSED, "combat paused");
@@ -5293,6 +6035,11 @@ function updateGame(deltaSec) {
     }
 
     if (result) {
+      if (game.practice) {
+        game.combat = null;
+        setGameOver(result.winner === "attacker" ? "S" : result.winner === "defender" ? "V" : "draw", "Practice complete. Retry to build your combat rhythm.");
+        return;
+      }
       applyDuelResolutionToBoard(game, result);
       game.combat = null;
       transitionTopState(game, TopLevelState.BOARD, "combat ended");
@@ -5315,6 +6062,9 @@ function updateGame(deltaSec) {
 }
 
 function syncUi() {
+  const inputSnapshot = input.getSnapshot();
+  ui.updateInputStatus(inputSnapshot);
+  ui.setMuted(game.muted);
   if (game.topState === TopLevelState.HELP) {
     // Help is a modal overlay: keep whatever screen is underneath and do not
     // touch board/combat HUD (the board grid may be empty at the title).
@@ -5338,7 +6088,7 @@ function syncUi() {
   if (game.combat) {
     ui.showScreen("combatScreen");
     renderer.resizeArena();
-    ui.updateCombatHud(game);
+    ui.updateCombatHud(game, inputSnapshot);
     syncQaBridge();
     return;
   }
@@ -5385,6 +6135,10 @@ let last = performance.now();
 function loop(now) {
   const deltaSec = Math.min(0.033, (now - last) / 1000);
   last = now;
+  if (now - lastViewportCheck > 500) {
+    checkViewport();
+    lastViewportCheck = now;
+  }
   updateGame(deltaSec);
   syncUi();
   draw();
@@ -5398,9 +6152,17 @@ function bindUiButtons() {
     startNewGame("ai", "hard");
   });
   document.getElementById("newPVP").addEventListener("click", () => startNewGame("pvp"));
+  document.getElementById("practiceBtn").addEventListener("click", startPractice);
 
-  document.getElementById("endRestartAI").addEventListener("click", () => startNewGame("ai", game.difficulty));
+  document.getElementById("endRestartAI").addEventListener("click", () => game.practice ? startPractice() : startNewGame("ai", game.difficulty));
   document.getElementById("endRestartPVP").addEventListener("click", () => startNewGame("pvp", game.difficulty));
+  for (const id of ["endMenu", "boardExit", "combatExit"]) document.getElementById(id)?.addEventListener("click", returnToTitle);
+  document.getElementById("combatHelp").addEventListener("click", () => setHelpVisible(true));
+  document.getElementById("combatMute").addEventListener("click", () => {
+    game.muted = !game.muted;
+    ui.setMuted(game.muted);
+    if (game.combat && !game.combat.paused) platform.focusGame();
+  });
 
   document.getElementById("howBtn").addEventListener("click", () => {
     setHelpVisible(true);
@@ -5436,18 +6198,7 @@ function bindUiButtons() {
   });
 
   document.getElementById("pauseBtn").addEventListener("click", () => {
-    if (!game.combat) {
-      return;
-    }
-    game.combat.paused = !game.combat.paused;
-    if (game.combat.paused) {
-      transitionTopState(game, TopLevelState.PAUSED, "combat pause button");
-      game.combat.message = "Paused";
-    } else {
-      transitionTopState(game, TopLevelState.COMBAT_ACTIVE, "combat resume button");
-      game.combat.message = "Fight!";
-    }
-    input.resetAll();
+    if (game.combat) setPaused(!game.combat.paused);
   });
 
   boardCanvas.addEventListener("pointerdown", (event) => {
@@ -5455,13 +6206,67 @@ function bindUiButtons() {
     if (row < 0 || row > 8 || col < 0 || col > 8) {
       return;
     }
+    game.boardCursor = {row, col, visible:false};
+    boardActionFocus = false;
+    platform.focusGame();
     handleBoardClick(row, col);
   });
 
-  window.addEventListener("resize", () => {
-    renderer.resizeBoard();
-    renderer.resizeArena();
-  });
+  window.addEventListener("resize", checkViewport);
+  window.addEventListener("orientationchange", checkViewport);
+  window.addEventListener("blur", () => suspendPlay("Window lost focus"));
+  document.addEventListener("visibilitychange", () => { if (document.hidden) suspendPlay("App in background"); });
+  document.addEventListener("keydown", event => {
+    if (game.topState === TopLevelState.HELP && event.code === "Tab") {
+      event.preventDefault();
+      document.getElementById("closeHelp").focus({preventScroll:true});
+    }
+  }, true);
+
+  // Non-primary touches (e.g. Pause with the third finger while moving/firing)
+  // emit pointerup but no compatibility click. Activate on a deliberate touch
+  // release and suppress its possible later click; keep native keyboard clicks.
+  for (const button of document.querySelectorAll("button:not(.bigBtn)")) {
+    let gesture = null;
+    let suppressClickUntil = 0;
+    // Toolbar touches are input owners too. A finger held across blur/rotation
+    // must not later activate Resume or another button in the restored screen.
+    input.stickResets.push(() => {
+      const old = gesture;
+      gesture = null;
+      if (old) {
+        suppressClickUntil = performance.now() + 800;
+        try { if (button.hasPointerCapture(old.id)) button.releasePointerCapture(old.id); } catch { /* Already reclaimed. */ }
+      }
+    });
+    button.addEventListener("pointerdown", event => {
+      if (!["touch", "pen"].includes(event.pointerType) || button.disabled || gesture) return;
+      event.preventDefault();
+      gesture = {id:event.pointerId, x:event.clientX, y:event.clientY};
+      try { button.setPointerCapture(event.pointerId); } catch { /* Window release is the fallback. */ }
+    }, {passive:false});
+    const finish = event => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      const start = gesture;
+      gesture = null;
+      try { if (button.hasPointerCapture(start.id)) button.releasePointerCapture(start.id); } catch { /* Already released. */ }
+      if (event.type !== "pointerup") return;
+      suppressClickUntil = performance.now() + 800;
+      const rect = button.getBoundingClientRect();
+      const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+      if (inside && Math.hypot(event.clientX-start.x, event.clientY-start.y) < 22 && !button.disabled) {
+        event.preventDefault();
+        button.click();
+      }
+    };
+    for (const event of ["pointerup", "pointercancel"]) window.addEventListener(event, finish, {passive:false});
+    button.addEventListener("lostpointercapture", finish);
+    button.addEventListener("click", event => {
+      if (event.detail > 0 && performance.now() < suppressClickUntil) {
+        event.preventDefault(); event.stopImmediatePropagation();
+      }
+    }, true);
+  }
 }
 
 function buildQaSnapshot() {
@@ -5470,6 +6275,8 @@ function buildQaSnapshot() {
     boardTurnState: game.boardTurnState,
     mode: game.mode,
     difficulty: game.difficulty,
+    practice: game.practice,
+    boardCursor: {...game.boardCursor},
     turn: game.turn,
     turnName: FACTION_NAMES[game.turn],
     turnCount: game.turnCount,
@@ -5530,6 +6337,7 @@ function buildQaSnapshot() {
           modText: game.combat.modText,
           elapsedSec: game.combat.elapsedSec,
           overtimeMultiplier: game.combat.overtimeMultiplier,
+          projectileCount: game.combat.projectiles.length,
           obstacles: game.combat.obstacles.map((obstacle) => ({ ...obstacle })),
           barriers: game.combat.barriers.map((barrier) => ({ ...barrier })),
           fighters: game.combat.fighters.map((fighter) => ({
@@ -5544,6 +6352,10 @@ function buildQaSnapshot() {
             maxHp: fighter.maxHp,
             facingX: fighter.facingX,
             facingY: fighter.facingY,
+            aimMode: fighter.aimMode || "move",
+            attackCount: fighter.attackCount,
+            specialCount: fighter.specialCount,
+            pendingAction: fighter.pendingAction ? {kind:fighter.pendingAction.kind} : null,
             attackCooldown: fighter.attackCooldown,
             attackCooldownMax: fighter.attackCooldownMax,
             specialCooldown: fighter.specialCooldown,
@@ -5738,11 +6550,20 @@ function installQaTestHook() {
       return qaFlush();
     },
     setDuelAiEnabled(enabled) {
+      game.duelAiEnabled = Boolean(enabled);
       document.getElementById("duelAIToggle").checked = Boolean(enabled);
       return buildQaSnapshot();
     },
     setDifficulty(difficulty) {
       game.difficulty = normalizeDifficulty(difficulty);
+      return qaFlush();
+    },
+    // Long lifecycle/touch matrices need living targets. This explicit fixture
+    // changes HP only; it never changes cooldowns, input, aim, AI, or timing.
+    setCombatHpForTest(hp = 10000) {
+      if (!game.combat) return null;
+      const value = Math.max(1, Math.min(100000, Number(hp) || 10000));
+      for (const fighter of game.combat.fighters) fighter.hp = fighter.maxHp = value;
       return qaFlush();
     },
     setCommandCharge(faction, amount) {

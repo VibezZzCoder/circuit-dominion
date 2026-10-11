@@ -63,24 +63,37 @@ window.addEventListener("keydown", unlockAudio, true);
 const fpsTick = fpsMeter();
 let helpReturnState = TopLevelState.TITLE;
 let helpPausedCombat = false;
+let helpFocusReturn = null;
+let boardActionFocus = false;
+let viewportSize = {width: window.innerWidth, height: window.innerHeight};
+let lastViewportCheck = 0;
 
 const input = new InputManager({
   getTopState: () => game.topState,
+  getMode: () => game.mode,
+  onDeviceChange: (device) => { document.documentElement.dataset.input = device; },
 });
 
 input.bindStick(document.getElementById("stick1"), "p1");
 input.bindStick(document.getElementById("stick2"), "p2");
-input.bindTouchButton(document.getElementById("atk1"), "p1", "attack");
+input.bindAimPad(document.getElementById("atk1"), "p1");
 input.bindTouchButton(document.getElementById("sp1"), "p1", "special");
-input.bindTouchButton(document.getElementById("atk2"), "p2", "attack");
+input.bindAimPad(document.getElementById("atk2"), "p2");
 input.bindTouchButton(document.getElementById("sp2"), "p2", "special");
+input.bindArenaPointer(arenaCanvas, "p1", {pointFromEvent: event => renderer.arenaPoint(event)});
 
 function selectedDifficulty() {
   return normalizeDifficulty(document.getElementById("difficultySelect")?.value || game.difficulty);
 }
 
 function startNewGame(mode, difficulty = selectedDifficulty()) {
+  const muted = game.muted;
   game = createInitialState(mode, normalizeDifficulty(difficulty));
+  game.muted = muted;
+  document.getElementById("duelAIToggle").checked = false;
+  ui.toggleHelp(false);
+  helpPausedCombat = false;
+  boardActionFocus = false;
   game.board = createBoardGrid(game.fluxPhase);
   spawnInitialUnits(game);
   transitionTopState(game, TopLevelState.BOARD, "start game");
@@ -92,16 +105,35 @@ function startNewGame(mode, difficulty = selectedDifficulty()) {
   platform.focusGame();
 }
 
+function startPractice() {
+  startNewGame("ai", "easy");
+  game.practice = true;
+  const attacker = game.units.find((unit) => unit.type === "AS");
+  const defender = game.units.find((unit) => unit.type === "EC");
+  startDuelFromBoard(attacker, defender, 4, 4);
+  game.combat.message = "Practice · Solar is yours. Try move + hold Fire together.";
+  syncUi();
+}
+
 function returnToTitle() {
+  const muted = game.muted;
   game = createInitialState("ai", selectedDifficulty());
+  game.muted = muted;
+  ui.toggleHelp(false);
+  helpPausedCombat = false;
+  boardActionFocus = false;
   transitionTopState(game, TopLevelState.TITLE, "return title");
   helpReturnState = TopLevelState.TITLE;
   input.resetAll();
   syncUi();
+  document.getElementById("newAI").focus({preventScroll:true});
 }
 
 function setHelpVisible(on) {
+  input.resetAll();
   if (on) {
+    if (game.topState === TopLevelState.HELP) return;
+    helpFocusReturn = document.activeElement;
     helpReturnState = game.topState;
     // Freeze an active duel behind the overlay so the fight does not keep
     // dealing damage (and so the combat-state sync does not flip topState off HELP).
@@ -110,7 +142,9 @@ function setHelpVisible(on) {
       game.combat.paused = true;
     }
     ui.toggleHelp(true);
+    document.querySelector(".helpBox").scrollTop = 0;
     transitionTopState(game, TopLevelState.HELP, "open help");
+    document.getElementById("closeHelp").focus({preventScroll:true});
   } else {
     ui.toggleHelp(false);
     transitionTopState(game, helpReturnState, "close help");
@@ -118,10 +152,129 @@ function setHelpVisible(on) {
       game.combat.paused = false;
     }
     helpPausedCombat = false;
+    if (game.combat && !game.combat.paused) platform.focusGame();
+    else if (helpFocusReturn?.isConnected) helpFocusReturn.focus({preventScroll:true});
+  }
+}
+
+function setPaused(paused, reason = "Paused") {
+  if (!game.combat) return;
+  input.resetAll();
+  game.combat.paused = paused;
+  transitionTopState(game, paused ? TopLevelState.PAUSED :
+    game.combat.countdown > 0 ? TopLevelState.COMBAT_COUNTDOWN :
+    game.combat.state === "combatResolving" ? TopLevelState.COMBAT_RESOLVING : TopLevelState.COMBAT_ACTIVE,
+    paused ? "pause" : "resume");
+  game.combat.message = paused ? `${reason} · Resume when ready.` : "Fight! Hold Fire; move to dodge.";
+  if (paused) document.getElementById("pauseBtn").focus({preventScroll:true});
+  else platform.focusGame();
+}
+
+function suspendPlay(reason) {
+  input.resetAll();
+  if (!game.combat) return;
+  if (game.topState === TopLevelState.HELP) {
+    // Closing Help after returning to the app must not silently resume a fight.
+    helpPausedCombat = false;
+    helpReturnState = TopLevelState.PAUSED;
+    game.combat.paused = true;
+    game.combat.message = `${reason} · Resume when ready.`;
+  } else if (!game.combat.paused) setPaused(true, reason);
+}
+
+function checkViewport() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (Math.abs(width - viewportSize.width) < 2 && Math.abs(height - viewportSize.height) < 2) return;
+  const rotated = (width > height) !== (viewportSize.width > viewportSize.height);
+  viewportSize = {width, height};
+  const snapshot = input.getSnapshot();
+  const touchHeld = Object.values(snapshot.touchActive || {}).some(state => Object.values(state).some(Boolean));
+  if (rotated || touchHeld) suspendPlay("Layout changed");
+  else input.resetAll();
+  renderer.resizeBoard();
+  renderer.resizeArena();
+}
+
+function focusControl(control, pad = false) {
+  document.querySelectorAll("[data-pad-focus]").forEach(element => element.removeAttribute("data-pad-focus"));
+  if (!control) return;
+  if (pad) control.setAttribute("data-pad-focus", "true");
+  control.focus({preventScroll:true});
+  control.scrollIntoView({block:"nearest",inline:"nearest"});
+}
+
+function navigationControls() {
+  const surface = game.topState === TopLevelState.HELP ? document.getElementById("helpOverlay") :
+    game.topState === TopLevelState.BOARD ? document.querySelector(".sidePane") :
+    game.combat ? document.querySelector(".combatToolbar") || document.getElementById("combatScreen") :
+    document.querySelector(".screen.active");
+  return [...(surface?.querySelectorAll("button, select, input:not([type=hidden])") || [])]
+    .filter(element => !element.disabled && !element.closest("[hidden]") && element.getBoundingClientRect().width > 0);
+}
+
+function navigateInterface(actions) {
+  const pad = input.getSnapshot().lastDevice === "gamepad";
+  const board = game.topState === TopLevelState.BOARD;
+  const focusedUi = document.activeElement?.matches("button,select,input");
+  if (board && !boardActionFocus && (!focusedUi || pad)) {
+    if (actions.menuX || actions.menuY) {
+      game.boardCursor.visible = true;
+      game.boardCursor.row = Math.max(0, Math.min(8, game.boardCursor.row + Math.sign(actions.menuY || 0)));
+      game.boardCursor.col = Math.max(0, Math.min(8, game.boardCursor.col + Math.sign(actions.menuX || 0)));
+      platform.focusGame();
+    }
+    if (actions.confirm) {
+      game.boardCursor.visible = true;
+      handleBoardClick(game.boardCursor.row, game.boardCursor.col);
+    }
+    if (actions.cancel) {
+      clearSelection(game); game.boardAction = null;
+      pushLog(game, "Selection cleared. Choose a robot.");
+    }
+    return;
+  }
+  const menu = [TopLevelState.TITLE, TopLevelState.GAME_OVER, TopLevelState.HELP, TopLevelState.PAUSED].includes(game.topState) || (board && boardActionFocus);
+  if (!menu) return;
+  if (actions.cancel) {
+    if (game.topState === TopLevelState.HELP) setHelpVisible(false);
+    else if (board) {boardActionFocus = false; platform.focusGame();}
+    else if (game.combat) setPaused(false);
+    return;
+  }
+  // Native keyboard focus/activation remains the browser's responsibility.
+  if (!pad) return;
+  if (game.topState === TopLevelState.HELP) {
+    if (actions.menuY || actions.menuX) {
+      document.querySelector(".helpBox").scrollTop += Math.sign(actions.menuY || actions.menuX) * 120;
+    }
+    if (actions.confirm) setHelpVisible(false);
+    return;
+  }
+  const controls = navigationControls();
+  if (!controls.length) return;
+  let index = controls.indexOf(document.activeElement);
+  if (actions.menuX && document.activeElement?.tagName === "SELECT") {
+    const select = document.activeElement;
+    select.selectedIndex = Math.max(0, Math.min(select.options.length - 1, select.selectedIndex + Math.sign(actions.menuX)));
+    select.dispatchEvent(new Event("change", {bubbles:true}));
+  } else if (actions.menuX || actions.menuY || actions.focusNext) {
+    index = (index + Math.sign(actions.menuY || actions.menuX || 1) + controls.length) % controls.length;
+    focusControl(controls[index], true);
+  } else if (index < 0) {
+    index = 0; focusControl(controls[index], true);
+  }
+  if (actions.confirm && index >= 0) {
+    const control = controls[index];
+    if (control.tagName === "SELECT") {
+      control.selectedIndex = (control.selectedIndex + 1) % control.options.length;
+      control.dispatchEvent(new Event("change", {bubbles:true}));
+    } else control.click();
   }
 }
 
 function setGameOver(winner, reason) {
+  input.resetAll();
   markWinner(game, winner, reason);
   transitionTopState(game, TopLevelState.GAME_OVER, "win condition");
   pushLog(game, reason, "info");
@@ -186,6 +339,9 @@ function beginCommandPower(power) {
   game.selectedUnitId = null;
   game.legalMoves = [];
   game.boardAction = { type: power, sourceUnitId: null };
+  boardActionFocus = false;
+  game.boardCursor.visible = input.getSnapshot().lastDevice === "gamepad";
+  platform.focusGame();
   const instructions = {
     gridLock: "Grid Lock: choose any dashed Flux square.",
     fieldRepair: "Field Repair: choose a damaged non-command ally.",
@@ -248,6 +404,8 @@ function startDuelFromBoard(attacker, defender, row, col) {
   setBoardTurnState(game, BoardTurnState.STARTING_COMBAT, "move into attack");
   startCombat(game, attacker, defender, row, col);
   input.resetAll();
+  boardActionFocus = false;
+  platform.focusGame();
   audio.beep("attack");
   renderer.resizeArena();
 }
@@ -401,45 +559,56 @@ function executeBoardAiChoice(choice) {
 }
 
 function handleGlobalActions(actions) {
-  if (actions.pause && game.topState === TopLevelState.HELP) {
+  if (actions.gamepadDisconnected) {
+    suspendPlay("Controller disconnected");
+    return true;
+  }
+  if ((actions.pause || actions.cancel) && game.topState === TopLevelState.HELP) {
     // Escape dismisses the modal through its normal restoration path; it must
     // not unpause combat behind an overlay that remains visible.
     setHelpVisible(false);
-    input.resetAll();
-    return;
+    return true;
   }
   if (actions.toggleHelp) {
     const willOpen = !document.getElementById("helpOverlay").classList.contains("active");
     setHelpVisible(willOpen);
-    input.resetAll();
+    return true;
   }
 
   if (actions.toggleDebug) {
     game.debug.enabled = !game.debug.enabled;
     ui.toggleDebug(game.debug.enabled);
     input.resetAll();
+    return true;
   }
 
   if (actions.restart && game.topState !== TopLevelState.TITLE) {
-    startNewGame(game.mode, game.difficulty);
+    if (game.practice) startPractice();
+    else startNewGame(game.mode, game.difficulty);
+    return true;
   }
 
   if (actions.pause && game.combat) {
-    game.combat.paused = !game.combat.paused;
-    if (game.combat.paused) {
-      transitionTopState(game, TopLevelState.PAUSED, "combat pause");
-      game.combat.message = "Paused";
-    } else {
-      transitionTopState(game, TopLevelState.COMBAT_ACTIVE, "combat resume");
-      game.combat.message = "Fight!";
-    }
-    input.resetAll();
+    setPaused(!game.combat.paused);
+    return true;
   }
+  if (actions.pause && game.topState === TopLevelState.BOARD && input.getSnapshot().lastDevice === "gamepad") {
+    boardActionFocus = !boardActionFocus;
+    input.resetAll();
+    if (boardActionFocus) focusControl(navigationControls()[0], true);
+    else platform.focusGame();
+    return true;
+  }
+  return false;
 }
 
 function updateGame(deltaSec) {
-  const actions = input.update();
-  handleGlobalActions(actions);
+  let actions = input.update();
+  const previousState = game.topState;
+  const consumed = handleGlobalActions(actions);
+  if (!consumed) navigateInterface(actions);
+  // A menu/board confirmation cannot leak into the newly entered fight.
+  if (consumed || previousState !== game.topState) actions = input.defaultActions();
 
   if (game.topState === TopLevelState.BOARD) {
     runBoardAiTick();
@@ -449,6 +618,9 @@ function updateGame(deltaSec) {
     const duelDelta = game.debug.slowMo ? deltaSec * 0.4 : deltaSec;
     const duelNow = game.combat.nowMs + (game.combat.paused ? 0 : duelDelta * 1000);
     const result = updateCombat(game, actions, duelDelta, duelNow, audio);
+    for (const accepted of game.combat?.acceptedActions || []) {
+      input.consumeCombatAction(accepted.role, accepted.kind);
+    }
 
     if (game.combat?.paused) {
       if (game.topState !== TopLevelState.HELP) transitionTopState(game, TopLevelState.PAUSED, "combat paused");
@@ -461,6 +633,11 @@ function updateGame(deltaSec) {
     }
 
     if (result) {
+      if (game.practice) {
+        game.combat = null;
+        setGameOver(result.winner === "attacker" ? "S" : result.winner === "defender" ? "V" : "draw", "Practice complete. Retry to build your combat rhythm.");
+        return;
+      }
       applyDuelResolutionToBoard(game, result);
       game.combat = null;
       transitionTopState(game, TopLevelState.BOARD, "combat ended");
@@ -483,6 +660,9 @@ function updateGame(deltaSec) {
 }
 
 function syncUi() {
+  const inputSnapshot = input.getSnapshot();
+  ui.updateInputStatus(inputSnapshot);
+  ui.setMuted(game.muted);
   if (game.topState === TopLevelState.HELP) {
     // Help is a modal overlay: keep whatever screen is underneath and do not
     // touch board/combat HUD (the board grid may be empty at the title).
@@ -506,7 +686,7 @@ function syncUi() {
   if (game.combat) {
     ui.showScreen("combatScreen");
     renderer.resizeArena();
-    ui.updateCombatHud(game);
+    ui.updateCombatHud(game, inputSnapshot);
     syncQaBridge();
     return;
   }
@@ -553,6 +733,10 @@ let last = performance.now();
 function loop(now) {
   const deltaSec = Math.min(0.033, (now - last) / 1000);
   last = now;
+  if (now - lastViewportCheck > 500) {
+    checkViewport();
+    lastViewportCheck = now;
+  }
   updateGame(deltaSec);
   syncUi();
   draw();
@@ -566,9 +750,17 @@ function bindUiButtons() {
     startNewGame("ai", "hard");
   });
   document.getElementById("newPVP").addEventListener("click", () => startNewGame("pvp"));
+  document.getElementById("practiceBtn").addEventListener("click", startPractice);
 
-  document.getElementById("endRestartAI").addEventListener("click", () => startNewGame("ai", game.difficulty));
+  document.getElementById("endRestartAI").addEventListener("click", () => game.practice ? startPractice() : startNewGame("ai", game.difficulty));
   document.getElementById("endRestartPVP").addEventListener("click", () => startNewGame("pvp", game.difficulty));
+  for (const id of ["endMenu", "boardExit", "combatExit"]) document.getElementById(id)?.addEventListener("click", returnToTitle);
+  document.getElementById("combatHelp").addEventListener("click", () => setHelpVisible(true));
+  document.getElementById("combatMute").addEventListener("click", () => {
+    game.muted = !game.muted;
+    ui.setMuted(game.muted);
+    if (game.combat && !game.combat.paused) platform.focusGame();
+  });
 
   document.getElementById("howBtn").addEventListener("click", () => {
     setHelpVisible(true);
@@ -604,18 +796,7 @@ function bindUiButtons() {
   });
 
   document.getElementById("pauseBtn").addEventListener("click", () => {
-    if (!game.combat) {
-      return;
-    }
-    game.combat.paused = !game.combat.paused;
-    if (game.combat.paused) {
-      transitionTopState(game, TopLevelState.PAUSED, "combat pause button");
-      game.combat.message = "Paused";
-    } else {
-      transitionTopState(game, TopLevelState.COMBAT_ACTIVE, "combat resume button");
-      game.combat.message = "Fight!";
-    }
-    input.resetAll();
+    if (game.combat) setPaused(!game.combat.paused);
   });
 
   boardCanvas.addEventListener("pointerdown", (event) => {
@@ -623,13 +804,67 @@ function bindUiButtons() {
     if (row < 0 || row > 8 || col < 0 || col > 8) {
       return;
     }
+    game.boardCursor = {row, col, visible:false};
+    boardActionFocus = false;
+    platform.focusGame();
     handleBoardClick(row, col);
   });
 
-  window.addEventListener("resize", () => {
-    renderer.resizeBoard();
-    renderer.resizeArena();
-  });
+  window.addEventListener("resize", checkViewport);
+  window.addEventListener("orientationchange", checkViewport);
+  window.addEventListener("blur", () => suspendPlay("Window lost focus"));
+  document.addEventListener("visibilitychange", () => { if (document.hidden) suspendPlay("App in background"); });
+  document.addEventListener("keydown", event => {
+    if (game.topState === TopLevelState.HELP && event.code === "Tab") {
+      event.preventDefault();
+      document.getElementById("closeHelp").focus({preventScroll:true});
+    }
+  }, true);
+
+  // Non-primary touches (e.g. Pause with the third finger while moving/firing)
+  // emit pointerup but no compatibility click. Activate on a deliberate touch
+  // release and suppress its possible later click; keep native keyboard clicks.
+  for (const button of document.querySelectorAll("button:not(.bigBtn)")) {
+    let gesture = null;
+    let suppressClickUntil = 0;
+    // Toolbar touches are input owners too. A finger held across blur/rotation
+    // must not later activate Resume or another button in the restored screen.
+    input.stickResets.push(() => {
+      const old = gesture;
+      gesture = null;
+      if (old) {
+        suppressClickUntil = performance.now() + 800;
+        try { if (button.hasPointerCapture(old.id)) button.releasePointerCapture(old.id); } catch { /* Already reclaimed. */ }
+      }
+    });
+    button.addEventListener("pointerdown", event => {
+      if (!["touch", "pen"].includes(event.pointerType) || button.disabled || gesture) return;
+      event.preventDefault();
+      gesture = {id:event.pointerId, x:event.clientX, y:event.clientY};
+      try { button.setPointerCapture(event.pointerId); } catch { /* Window release is the fallback. */ }
+    }, {passive:false});
+    const finish = event => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      const start = gesture;
+      gesture = null;
+      try { if (button.hasPointerCapture(start.id)) button.releasePointerCapture(start.id); } catch { /* Already released. */ }
+      if (event.type !== "pointerup") return;
+      suppressClickUntil = performance.now() + 800;
+      const rect = button.getBoundingClientRect();
+      const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+      if (inside && Math.hypot(event.clientX-start.x, event.clientY-start.y) < 22 && !button.disabled) {
+        event.preventDefault();
+        button.click();
+      }
+    };
+    for (const event of ["pointerup", "pointercancel"]) window.addEventListener(event, finish, {passive:false});
+    button.addEventListener("lostpointercapture", finish);
+    button.addEventListener("click", event => {
+      if (event.detail > 0 && performance.now() < suppressClickUntil) {
+        event.preventDefault(); event.stopImmediatePropagation();
+      }
+    }, true);
+  }
 }
 
 function buildQaSnapshot() {
@@ -638,6 +873,8 @@ function buildQaSnapshot() {
     boardTurnState: game.boardTurnState,
     mode: game.mode,
     difficulty: game.difficulty,
+    practice: game.practice,
+    boardCursor: {...game.boardCursor},
     turn: game.turn,
     turnName: FACTION_NAMES[game.turn],
     turnCount: game.turnCount,
@@ -698,6 +935,7 @@ function buildQaSnapshot() {
           modText: game.combat.modText,
           elapsedSec: game.combat.elapsedSec,
           overtimeMultiplier: game.combat.overtimeMultiplier,
+          projectileCount: game.combat.projectiles.length,
           obstacles: game.combat.obstacles.map((obstacle) => ({ ...obstacle })),
           barriers: game.combat.barriers.map((barrier) => ({ ...barrier })),
           fighters: game.combat.fighters.map((fighter) => ({
@@ -712,6 +950,10 @@ function buildQaSnapshot() {
             maxHp: fighter.maxHp,
             facingX: fighter.facingX,
             facingY: fighter.facingY,
+            aimMode: fighter.aimMode || "move",
+            attackCount: fighter.attackCount,
+            specialCount: fighter.specialCount,
+            pendingAction: fighter.pendingAction ? {kind:fighter.pendingAction.kind} : null,
             attackCooldown: fighter.attackCooldown,
             attackCooldownMax: fighter.attackCooldownMax,
             specialCooldown: fighter.specialCooldown,
@@ -906,11 +1148,20 @@ function installQaTestHook() {
       return qaFlush();
     },
     setDuelAiEnabled(enabled) {
+      game.duelAiEnabled = Boolean(enabled);
       document.getElementById("duelAIToggle").checked = Boolean(enabled);
       return buildQaSnapshot();
     },
     setDifficulty(difficulty) {
       game.difficulty = normalizeDifficulty(difficulty);
+      return qaFlush();
+    },
+    // Long lifecycle/touch matrices need living targets. This explicit fixture
+    // changes HP only; it never changes cooldowns, input, aim, AI, or timing.
+    setCombatHpForTest(hp = 10000) {
+      if (!game.combat) return null;
+      const value = Math.max(1, Math.min(100000, Number(hp) || 10000));
+      for (const fighter of game.combat.fighters) fighter.hp = fighter.maxHp = value;
       return qaFlush();
     },
     setCommandCharge(faction, amount) {

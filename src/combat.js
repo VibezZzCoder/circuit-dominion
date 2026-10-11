@@ -144,7 +144,7 @@ export function startCombat(game, attacker, defender, row, col) {
     overtimeStage: 0,
     nowMs: 0,
     rng: Math.random,
-    message: `Duel begins on ${String.fromCharCode(65 + col)}${row + 1}. Move to aim; controls unlock after countdown.`,
+    message: `Duel on ${String.fromCharCode(65 + col)}${row + 1}. ${game.mode === "pvp" ? "P1 Solar · P2 Void." : "You are Solar."} Get ready!`,
     modText: "",
     fighters: [attackerFighter, defenderFighter],
     projectiles: [],
@@ -186,6 +186,8 @@ function makeFighter(unit, slot, energy) {
     speed: def.speed,
     attackCooldown: 0,
     attackCooldownMax: def.attack.cooldown,
+    attackCount: 0,
+    specialCount: 0,
     specialCooldown: def.special.cooldown * 0.5,
     specialCooldownMax: def.special.cooldown,
     facingX: slot ? -1 : 1,
@@ -226,9 +228,7 @@ function shortModifierText(mod) {
 }
 
 function assignControllers(game, combat) {
-  const aiVoidInPvp =
-    typeof document !== "undefined" &&
-    Boolean(document.getElementById("duelAIToggle")?.checked);
+  const aiVoidInPvp = Boolean(game.duelAiEnabled);
 
   for (const fighter of combat.fighters) {
     const faction = UNIT_DEFS[fighter.unit.type].faction;
@@ -241,11 +241,11 @@ function assignControllers(game, combat) {
     }
 
     if (fighter.controller === "ai") {
-      fighter.controlHint = `${FACTION_NAMES[faction]} · ${game.difficulty} AI · movement controls facing`;
+      fighter.controlHint = `${FACTION_NAMES[faction]} · ${game.difficulty} AI`;
     } else if (fighter.controller === "p1") {
-      fighter.controlHint = `${FACTION_NAMES[faction]} · WASD aim/move · Space/F attack · Left Shift special`;
+      fighter.controlHint = "WASD move · hold Space/F fire · Left Shift special · mouse to aim";
     } else {
-      fighter.controlHint = `${FACTION_NAMES[faction]} · Arrows aim/move · Enter or / attack · Right Shift special`;
+      fighter.controlHint = "Arrows move · hold Enter or / fire · Right Shift special";
     }
   }
 
@@ -259,6 +259,7 @@ function assignControllers(game, combat) {
 
 export function updateCombat(game, actions, deltaSec, nowMs, audio) {
   const combat = game.combat;
+  if (combat) combat.acceptedActions = [];
   if (!combat || combat.paused) {
     return null;
   }
@@ -268,7 +269,7 @@ export function updateCombat(game, actions, deltaSec, nowMs, audio) {
     combat.state = "combatCountdown";
     combat.countdown = Math.max(0, combat.countdown - deltaSec);
     if (combat.countdown <= 0) {
-      combat.message = "Fight! Movement controls facing.";
+      combat.message = "Fight! Hold Fire to track your rival; move to dodge.";
       combat.state = "combatActive";
       audio.beep("countdown");
     }
@@ -319,20 +320,21 @@ export function updateCombat(game, actions, deltaSec, nowMs, audio) {
 }
 
 function intentForFighter(game, fighter, opponent, combat, actions, nowMs) {
-  if (fighter.controller === "p1") {
+  if (fighter.controller === "p1" || fighter.controller === "p2") {
+    const role = fighter.controller;
+    const point = actions[`${role}AimPoint`];
+    const manualAim = Boolean(actions[`${role}ManualAim`] || point);
+    const useAttack = Boolean(actions[`${role}Attack`]);
+    const useSpecial = Boolean(actions[`${role}Special`]);
     return {
-      moveX: actions.p1MoveX,
-      moveY: actions.p1MoveY,
-      useAttack: actions.p1Attack,
-      useSpecial: actions.p1Special,
-    };
-  }
-  if (fighter.controller === "p2") {
-    return {
-      moveX: actions.p2MoveX,
-      moveY: actions.p2MoveY,
-      useAttack: actions.p2Attack,
-      useSpecial: actions.p2Special,
+      moveX: actions[`${role}MoveX`] || 0,
+      moveY: actions[`${role}MoveY`] || 0,
+      useAttack,
+      useSpecial,
+      aimX: point ? point.x - fighter.x : actions[`${role}AimX`] || 0,
+      aimY: point ? point.y - fighter.y : actions[`${role}AimY`] || 0,
+      manualAim,
+      assistAim: !manualAim && (useAttack || useSpecial),
     };
   }
   return getDuelAiIntent(fighter, opponent, combat, nowMs, game.difficulty, combat.rng);
@@ -352,17 +354,25 @@ function controlFighter(game, combat, fighter, opponent, actions, dt, nowMs, aud
     moveX /= magnitude;
     moveY /= magnitude;
   }
-  if (magnitude > 0.08 && !fighter.pendingAction && !fighter.dash) {
-    fighter.facingX = moveX / Math.max(0.001, Math.hypot(moveX, moveY));
-    fighter.facingY = moveY / Math.max(0.001, Math.hypot(moveX, moveY));
+  if (!fighter.pendingAction && !fighter.dash) {
+    const aimX = intent.manualAim ? intent.aimX : intent.assistAim ? opponent.x - fighter.x : moveX;
+    const aimY = intent.manualAim ? intent.aimY : intent.assistAim ? opponent.y - fighter.y : moveY;
+    const aimLength = Math.hypot(aimX, aimY);
+    if (aimLength > 0.08) {
+      fighter.facingX = aimX / aimLength;
+      fighter.facingY = aimY / aimLength;
+    }
+    fighter.aimMode = intent.manualAim ? "manual" : intent.assistAim ? "assist" : "move";
   }
 
   const busy = Boolean(fighter.pendingAction);
   const hardLocked = isFighterLocked(fighter);
+  // Preserve attack commitment. High mobility during windup disproportionately
+  // buffs heavy melee; responsiveness comes from input/aim and acceleration.
   const movementScale = hardLocked ? 0.12 : busy ? 0.5 : 1;
   const targetVx = moveX * fighter.speed * movementScale;
   const targetVy = moveY * fighter.speed * movementScale;
-  const response = Math.min(1, dt * 12);
+  const response = 1 - Math.exp(-dt * 18);
   fighter.vx += (targetVx - fighter.vx) * response;
   fighter.vy += (targetVy - fighter.vy) * response;
 
@@ -370,10 +380,11 @@ function controlFighter(game, combat, fighter, opponent, actions, dt, nowMs, aud
     fighter.state = magnitude > 0.05 ? FighterState.MOVE : FighterState.IDLE;
   }
   if (!busy && !hardLocked && !fighter.dash) {
-    if (intent.useSpecial) {
-      beginSpecial(fighter, combat, nowMs, audio);
-    } else if (intent.useAttack) {
-      beginAttack(fighter, combat, nowMs, audio);
+    // An unavailable special must never swallow an otherwise legal basic shot.
+    const usedSpecial = intent.useSpecial && beginSpecial(fighter, combat, nowMs, audio);
+    if (usedSpecial) combat.acceptedActions.push({role: fighter.controller, kind: "special"});
+    else if (intent.useAttack && beginAttack(fighter, combat, nowMs, audio)) {
+      combat.acceptedActions.push({role: fighter.controller, kind: "attack"});
     }
   }
 }
@@ -426,7 +437,7 @@ function progressAction(fighter, opponent, combat, nowMs, audio) {
 
 function beginAttack(fighter, combat, nowMs, audio) {
   if (fighter.attackCooldown > 0 || combat.state !== "combatActive") {
-    return;
+    return false;
   }
   const def = UNIT_DEFS[fighter.unit.type];
   const actionTiming = createActionTiming(def, "attack");
@@ -434,6 +445,8 @@ function beginAttack(fighter, combat, nowMs, audio) {
   scheduleAction(fighter, "attack", actionTiming, nowMs);
   setFighterState(fighter, FighterState.ATTACK_STARTUP, nowMs, actionTiming.startupMs);
   audio.beep("attack");
+  fighter.attackCount += 1;
+  return true;
 }
 
 function executeAttack(fighter, opponent, combat, audio) {
@@ -454,7 +467,7 @@ function executeAttack(fighter, opponent, combat, audio) {
 
 function beginSpecial(fighter, combat, nowMs, audio) {
   if (fighter.specialCooldown > 0 || combat.state !== "combatActive") {
-    return;
+    return false;
   }
   const def = UNIT_DEFS[fighter.unit.type];
   const actionTiming = createActionTiming(def, "special");
@@ -464,6 +477,8 @@ function beginSpecial(fighter, combat, nowMs, audio) {
   setFighterState(fighter, FighterState.SPECIAL_STARTUP, nowMs, actionTiming.startupMs);
   combat.message = `${def.name}: ${def.special.name}`;
   audio.beep("special");
+  fighter.specialCount += 1;
+  return true;
 }
 
 function executeSpecial(fighter, opponent, combat, nowMs, audio) {

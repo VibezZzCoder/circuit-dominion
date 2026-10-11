@@ -16,7 +16,11 @@ Circuit Dominion is a tactical 9x9 board strategy game with real-time duel resol
 
 ![Circuit Dominion combat gameplay](docs/screenshots/combat-gameplay.png)
 
-Fresh gameplay captures from the September 2026 release are included above.
+### Two-Thumb Touch Controls
+
+![Circuit Dominion landscape touch combat](docs/screenshots/combat-touch-landscape.png)
+
+Fresh gameplay captures from the October 2026 controls update are included above.
 
 ## Gameplay Highlights
 
@@ -28,6 +32,8 @@ Fresh gameplay captures from the September 2026 release are included above.
 - Directional attacks, finite projectile range, cover, collision, telegraphed
   specials, and escalating overtime
 - Easy, Standard, and Hard AI without hidden stat bonuses
+- Hold-to-fire with aim assist, optional independent manual aiming, floating
+  touch sticks, standard-mapping gamepad controls, and a quick Combat Practice
 
 ## Project Structure
 
@@ -61,10 +67,13 @@ Before distributing a changed build, run:
 ```sh
 node scripts/sanity-tests.mjs
 node scripts/platform-tests.mjs
+node scripts/input-tests.mjs
+node scripts/combat-control-tests.mjs
 node scripts/matchup-simulations.mjs
 node scripts/build-release.mjs
 node scripts/release-tests.mjs
 node scripts/browser-e2e-tests.mjs
+node scripts/package-release.mjs
 ```
 
 The build verifies source/release byte parity, exact filenames, the GPL notice,
@@ -77,11 +86,18 @@ as the online entry point. Include corresponding GPL source when distributing;
 keep local drafts and QA captures under `assets/work/` out of the upload.
 Publication remains a manual owner action. Physical iPhone and human-play
 acceptance checks are in [the device checklist](docs/DEVICE_CHECKLIST.md).
+The packaging command writes an upload ZIP, corresponding-source ZIP, identical
+offline HTML, instructions, and SHA-256 checksums under `delivery/`. It extracts
+and verifies both ZIPs locally; it never uploads anything.
 
 ## Controls
 
 ### Board
 - Mouse/touch: select unit and destination square
+- Keyboard: arrows or WASD move the gold cursor; Enter/Space selects; Escape
+  cancels selection. Tab reaches the command and menu buttons.
+- Controller: left stick/D-pad moves the cursor; A selects; B cancels; Start
+  switches between the board and command/menu buttons.
 - `H`: open help
 - `R`: restart current mode
 - `` ` ``: toggle debug overlay
@@ -89,20 +105,37 @@ acceptance checks are in [the device checklist](docs/DEVICE_CHECKLIST.md).
 ### Duel
 - Solar (P1):
   - Move: `WASD`
-  - Attack: `Space` or `F`
+  - Fire: hold `Space` or `F`, or left mouse on the arena
   - Special: `Left Shift`
+  - Manual aim: point the mouse in the arena; right-click also uses Special
 - Void (P2 in PvP):
   - Move: Arrow keys
-  - Attack: `Enter` or `/`
+  - Fire: hold `Enter` or `/`
   - Special: `Right Shift`
 - Mobile touch:
-  - Virtual stick + Attack/Special buttons
+  - Touch anywhere inside Move, then drag; your first contact is neutral.
+  - Hold Fire to keep firing when reloaded, with aim assist toward the rival.
+  - Drag on Fire for independent manual aim; tap the named Special when ready.
+  - Move and Fire work simultaneously. PvP has independent control groups.
+- Standard-mapping controller (first connected = Solar; second = Void in PvP):
+  - Left stick/D-pad moves; right stick manually aims.
+  - Hold A or RT to fire; press X or LB for Special; Start pauses; Y opens Help.
+  - Menus: stick/D-pad navigates, A activates, B backs out. Release held controls
+    after a transition or reconnect before beginning a new action.
+  - Help: D-pad scrolls the rules; A or B closes.
 - `Esc`: pause/resume duel
+
+Without manual aim, firing tracks the rival while movement remains independent.
+Shots still have finite range, windup, travel time, and cover collision. Special
+presses buffer briefly near readiness but never repeat merely because held.
+Pause, Help, losing focus, backgrounding, rotation during combat, or controller
+disconnection clear held input. Suspended fights require an explicit Resume.
 
 ## Game Modes
 
 - Player vs AI
 - Player vs Player
+- Combat Practice (Solar Arc Sniper vs Easy Void Entropy Cannon)
 
 PvAI invariant: human always controls Solar in duels; AI always controls Void, regardless of who initiated combat.
 
