@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 import { FighterState } from "./state.js";
 
 export function createActionTiming(def, actionName) {

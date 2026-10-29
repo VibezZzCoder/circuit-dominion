@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
+/*! Circuit Dominion — original game by Edwin RodMen (VibezZzCoder)
+ * Source: https://github.com/VibezZzCoder/circuit-dominion
+ * Copyright (C) 2026 Edwin RodMen. GPL-3.0-or-later with section 7 terms (NOTICE.md). */
 import {
   applyEmergencyRelay,
   applyFieldRepair,
@@ -33,14 +37,37 @@ import { Renderer } from "./render.js";
 import { BoardTurnState, TopLevelState, createInitialState, pushLog, setBoardTurnState, transitionTopState } from "./state.js";
 import { chooseBoardAiAction } from "./ai.js";
 import { UIController } from "./ui.js";
-import { DIFFICULTY_SETTINGS, FACTION_NAMES, POWER_NODES, normalizeDifficulty } from "./utils.js";
+import { DIFFICULTY_SETTINGS, FACTION_NAMES, FLUX_PHASES, POWER_NODES, normalizeDifficulty } from "./utils.js";
 import { UNIT_DEFS } from "./units.js";
+import { ORIGIN_LINE, applyOriginNotice } from "./origin.js";
+import {
+  advancePresentation,
+  clearTween,
+  deployUnits,
+  isBoardBusy,
+  noteUnitMove,
+  pushBoardEffect,
+  showBoardBanner,
+  tweenEndsAt,
+} from "./presentation.js";
 
 const ui = new UIController(document);
 const boardCanvas = document.getElementById("board");
 const arenaCanvas = document.getElementById("arena");
+console.info(ORIGIN_LINE);
+applyOriginNotice(document, window.location);
 const assets = new AssetManager();
 assets.ready.then(() => assets.applyTitleBackgrounds());
+ui.setAssets?.(assets);
+// The developer overlay is opt-in: add ?debug to the URL.
+const DEBUG_ALLOWED = (() => {
+  try {
+    return new URLSearchParams(window.location.search).has("debug");
+  } catch {
+    return false;
+  }
+})();
+let restartArmedUntil = 0;
 const renderer = new Renderer(boardCanvas, arenaCanvas, assets);
 const platform = installPlatformGuards(document.getElementById("gameRoot"));
 
@@ -67,6 +94,91 @@ let helpFocusReturn = null;
 let boardActionFocus = false;
 let viewportSize = {width: window.innerWidth, height: window.innerHeight};
 let lastViewportCheck = 0;
+// QA bridge calls stay instantaneous and deterministic unless a visual test
+// explicitly opts into the animated presentation.
+let qaInstantPresentation = true;
+let qaBridgeUsed = false;
+let showUnitLabels = readStoredFlag("cd.showLabels");
+// Slider positions 0..100; music starts below full so effects read clearly.
+const VOLUME_DEFAULTS = {music: 60, sfx: 100};
+const volumes = {music: readStoredVolume("music"), sfx: readStoredVolume("sfx")};
+applyVolumes();
+
+function readStoredVolume(kind) {
+  try {
+    const stored = globalThis.localStorage?.getItem(`cd.${kind}Volume`);
+    if (stored !== null && stored !== undefined && stored !== "" && Number.isFinite(Number(stored))) {
+      return Math.max(0, Math.min(100, Math.round(Number(stored))));
+    }
+    // Earlier builds had a Music On/Off switch.
+    if (kind === "music" && globalThis.localStorage?.getItem("cd.musicOff") === "1") return 0;
+  } catch {
+    // Storage can be unavailable (private mode); fall back to the defaults.
+  }
+  return VOLUME_DEFAULTS[kind];
+}
+
+// A squared taper: slider travel tracks loudness instead of raw gain.
+function applyVolumes() {
+  audio.setVolumes?.({music: (volumes.music / 100) ** 2, sfx: (volumes.sfx / 100) ** 2});
+  audio.setMusicEnabled?.(volumes.music > 0);
+}
+
+function setVolume(kind, value) {
+  volumes[kind] = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  applyVolumes();
+  try {
+    globalThis.localStorage?.setItem(`cd.${kind}Volume`, String(volumes[kind]));
+  } catch {
+    // The level still applies for this session.
+  }
+  ui.setVolumes(volumes);
+}
+
+function readStoredFlag(key) {
+  try {
+    return globalThis.localStorage?.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeStoredFlag(key, on) {
+  try {
+    globalThis.localStorage?.setItem(key, on ? "1" : "0");
+  } catch {
+    // Storage can be unavailable (private mode); the toggle still works.
+  }
+}
+
+function presentation() {
+  return game.presentation;
+}
+
+const FLUX_NAMES = { N: "Neutral", L: "Light", D: "Dark" };
+const ENERGY_FACTION_NAMES = { S: "Solar", V: "Void" };
+
+function factionOfUnit(unit) {
+  return UNIT_DEFS[unit.type].faction;
+}
+
+// Show a logical move that has already happened.
+function presentMove(unit, from, kind = "move") {
+  const faction = factionOfUnit(unit);
+  const to = { row: unit.row, col: unit.col };
+  const tween = noteUnitMove(presentation(), unit, from, to, kind, faction);
+  const delay = tween ? Math.max(0, tweenEndsAt(tween) - presentation().clockMs) : 0;
+  if (kind === "teleport") {
+    pushBoardEffect(presentation(), "teleportOut", { row: from.row, col: from.col, faction });
+    pushBoardEffect(presentation(), "teleportIn", { row: to.row, col: to.col, faction, delay: delay * 0.5 });
+  } else {
+    pushBoardEffect(presentation(), "land", { row: to.row, col: to.col, faction, delay });
+  }
+  if (game.board[to.row]?.[to.col]?.node) {
+    pushBoardEffect(presentation(), "node", { row: to.row, col: to.col, faction, delay: delay + 40 });
+    audio.beep("nodeCapture", { faction });
+  }
+}
 
 const input = new InputManager({
   getTopState: () => game.topState,
@@ -96,9 +208,13 @@ function startNewGame(mode, difficulty = selectedDifficulty()) {
   boardActionFocus = false;
   game.board = createBoardGrid(game.fluxPhase);
   spawnInitialUnits(game);
+  game.presentation.showLabels = showUnitLabels;
+  game.presentation.instant = qaBridgeUsed && qaInstantPresentation;
+  deployUnits(game.presentation, game.units, factionOfUnit);
   transitionTopState(game, TopLevelState.BOARD, "start game");
   setBoardTurnState(game, BoardTurnState.AWAITING_SELECTION, "new game");
   pushLog(game, "Solar Protocol begins. Select a robot.", "info");
+  showBoardBanner(game.presentation, mode === "pvp" ? "SOLAR PROTOCOL" : "ROUND 1", mode === "pvp" ? "Player 1 · make your move" : "You command Solar Protocol", "S", 1500);
   helpReturnState = TopLevelState.BOARD;
   input.resetAll();
   syncUi();
@@ -160,19 +276,25 @@ function setHelpVisible(on) {
 function setPaused(paused, reason = "Paused") {
   if (!game.combat) return;
   input.resetAll();
+  if (game.combat.paused !== paused) audio.beep(paused ? "pause" : "resume");
   game.combat.paused = paused;
   transitionTopState(game, paused ? TopLevelState.PAUSED :
     game.combat.countdown > 0 ? TopLevelState.COMBAT_COUNTDOWN :
     game.combat.state === "combatResolving" ? TopLevelState.COMBAT_RESOLVING : TopLevelState.COMBAT_ACTIVE,
     paused ? "pause" : "resume");
-  game.combat.message = paused ? `${reason} · Resume when ready.` : "Fight! Hold Fire; move to dodge.";
+  game.combat.message = paused ? `${reason} · Resume when ready.` : game.combat.countdown > 0 ? "Get ready!" : "Fight! Hold Fire; move to dodge.";
   if (paused) document.getElementById("pauseBtn").focus({preventScroll:true});
   else platform.focusGame();
 }
 
 function suspendPlay(reason) {
   input.resetAll();
-  if (!game.combat) return;
+  if (!game.combat) {
+    // A duel still opening behind the attack approach must start paused.
+    const pending = presentation().pendingDuel;
+    if (pending) pending.suspendReason = reason;
+    return;
+  }
   if (game.topState === TopLevelState.HELP) {
     // Closing Help after returning to the app must not silently resume a fight.
     helpPausedCombat = false;
@@ -209,7 +331,7 @@ function navigationControls() {
     game.topState === TopLevelState.BOARD ? document.querySelector(".sidePane") :
     game.combat ? document.querySelector(".combatToolbar") || document.getElementById("combatScreen") :
     document.querySelector(".screen.active");
-  return [...(surface?.querySelectorAll("button, select, input:not([type=hidden])") || [])]
+  return [...(surface?.querySelectorAll("button, select, input:not([type=hidden]), a[href]") || [])]
     .filter(element => !element.disabled && !element.closest("[hidden]") && element.getBoundingClientRect().width > 0);
 }
 
@@ -254,7 +376,12 @@ function navigateInterface(actions) {
   const controls = navigationControls();
   if (!controls.length) return;
   let index = controls.indexOf(document.activeElement);
-  if (actions.menuX && document.activeElement?.tagName === "SELECT") {
+  if (actions.menuX && document.activeElement?.matches?.("input[type=range]")) {
+    const range = document.activeElement;
+    range.value = String(Number(range.value) + Math.sign(actions.menuX) * Number(range.step || 1) * 2);
+    range.dispatchEvent(new Event("input", {bubbles:true}));
+    range.dispatchEvent(new Event("change", {bubbles:true}));
+  } else if (actions.menuX && document.activeElement?.tagName === "SELECT") {
     const select = document.activeElement;
     select.selectedIndex = Math.max(0, Math.min(select.options.length - 1, select.selectedIndex + Math.sign(actions.menuX)));
     select.dispatchEvent(new Event("change", {bubbles:true}));
@@ -274,11 +401,22 @@ function navigateInterface(actions) {
 }
 
 function setGameOver(winner, reason) {
+  const p = presentation();
+  // Let the final capture or explosion land on the board before the end card.
+  if (!p.instant && !game.practice && !p.pendingGameOver &&
+      [TopLevelState.BOARD, TopLevelState.BOARD_ANIMATING].includes(game.topState)) {
+    p.pendingGameOver = { winner, reason, at: p.clockMs + 1100 + Math.max(0, latestTweenEnd() - p.clockMs) };
+    clearSelection(game);
+    transitionTopState(game, TopLevelState.BOARD_ANIMATING, "victory reveal");
+    const title = winner === "draw" ? "MUTUAL SHUTDOWN" : `${FACTION_NAMES[winner].toUpperCase()} WINS`;
+    showBoardBanner(p, title, reason.charAt(0).toUpperCase() + reason.slice(1), winner === "draw" ? null : winner, 2000);
+    return;
+  }
+  p.pendingGameOver = null;
   input.resetAll();
   markWinner(game, winner, reason);
   transitionTopState(game, TopLevelState.GAME_OVER, "win condition");
   pushLog(game, reason, "info");
-  audio.beep("win");
   syncUi();
 }
 
@@ -318,12 +456,132 @@ function endTurnFlow() {
   if (updates.length) {
     pushLog(game, `${updates.join(" · ")}.`, threat ? "bad" : "info");
   }
+  announceTurn(result, threat);
 
   if (game.mode === "ai" && game.turn === "V") {
     game.aiDelayTicks = Math.round(DIFFICULTY_SETTINGS[game.difficulty].reactionMs / 16);
     setBoardTurnState(game, BoardTurnState.AI_THINKING, "void ai turn");
     pushLog(game, "Void Core calculating...", "info");
   }
+}
+
+function announceTurn(result, threat) {
+  const p = presentation();
+  const pvp = game.mode === "pvp";
+  const flux = FLUX_NAMES[FLUX_PHASES[game.fluxPhase]];
+  if (threat) {
+    showBoardBanner(p, "NODE ALERT", `${FACTION_NAMES[threat]} holds four Power Nodes`, threat, 1500);
+    audio.beep("warning");
+  } else if (result.shifted) {
+    showBoardBanner(p, pvp ? "SOLAR PROTOCOL" : `ROUND ${game.roundCount}`, `Flux shift: dashed cells now ${flux}${pvp ? " · Player 1" : ""}`, "S", 1400);
+    audio.beep("fluxShift");
+  } else if (pvp) {
+    showBoardBanner(p, "VOID CORE", "Player 2 · make your move", "V", 1200);
+  }
+  if (!threat) audio.beep(game.turn === "S" ? "turnSolar" : "turnVoid");
+}
+
+function latestTweenEnd() {
+  let latest = 0;
+  for (const tween of presentation().tweens.values()) {
+    if (tween.kind !== "approach") latest = Math.max(latest, tweenEndsAt(tween));
+  }
+  return latest;
+}
+
+// Attacker glides toward the defender and they clash before the duel opens.
+function beginAttackApproach(attacker, defender, row, col) {
+  const p = presentation();
+  if (p.instant) {
+    startDuelFromBoard(attacker, defender, row, col);
+    return;
+  }
+  clearSelection(game);
+  const from = { row: attacker.row, col: attacker.col };
+  const tween = noteUnitMove(p, attacker, from, { row, col }, "approach", factionOfUnit(attacker));
+  const clashAt = tweenEndsAt(tween);
+  p.pendingDuel = { attackerId: attacker.id, defenderId: defender.id, row, col, from, clashAt, at: clashAt + 520, clashed: false, energy: game.board[row][col].energy };
+  p.lastMove = { from, to: { row, col }, faction: factionOfUnit(attacker), t: p.clockMs };
+  transitionTopState(game, TopLevelState.BOARD_ANIMATING, "attack approach");
+  setBoardTurnState(game, BoardTurnState.STARTING_COMBAT, "attack approach");
+  input.resetAll();
+  audio.beep("dash", { faction: factionOfUnit(attacker) });
+}
+
+function updatePresentationTimers() {
+  const p = presentation();
+  const pending = p.pendingDuel;
+  if (pending) {
+    if (!pending.clashed && p.clockMs >= pending.clashAt) {
+      pending.clashed = true;
+      const midRow = pending.from.row + (pending.row - pending.from.row) * 0.78;
+      const midCol = pending.from.col + (pending.col - pending.from.col) * 0.78;
+      pushBoardEffect(p, "clash", { row: midRow, col: midCol });
+      audio.beep("clash");
+    }
+    if (p.clockMs >= pending.at) {
+      p.pendingDuel = null;
+      const attacker = getUnitById(game, pending.attackerId);
+      const defender = getUnitById(game, pending.defenderId);
+      if (attacker && defender) {
+        transitionTopState(game, TopLevelState.BOARD, "approach complete");
+        startDuelFromBoard(attacker, defender, pending.row, pending.col, true);
+        if (pending.suspendReason) setPaused(true, pending.suspendReason);
+      } else {
+        clearTween(p, pending.attackerId);
+        transitionTopState(game, TopLevelState.BOARD, "approach cancelled");
+        endTurnFlow();
+      }
+    }
+  }
+  if (p.pendingGameOver && p.clockMs >= p.pendingGameOver.at) {
+    const { winner, reason } = p.pendingGameOver;
+    p.instant = true;
+    setGameOver(winner, reason);
+    p.instant = false;
+  }
+}
+
+function recordDuelStats(result, combat) {
+  const stats = game.stats;
+  if (!stats) return;
+  stats.duels += 1;
+  if (result.winner === "draw") {
+    stats.draws += 1;
+    return;
+  }
+  const winnerFaction = result.winner === "attacker" ? result.attackerFaction : result.defenderFaction;
+  stats.wins[winnerFaction] += 1;
+  if (result.winner === "attacker") stats.captures[winnerFaction] += 1;
+  // An upset: the robot with less starting duel HP won.
+  const [attacker, defender] = combat.fighters;
+  const winner = result.winner === "attacker" ? attacker : defender;
+  const loser = winner === attacker ? defender : attacker;
+  if (winner.unit.maxHp < loser.unit.maxHp * 0.85) stats.upsets += 1;
+}
+
+// Board aftermath of a duel: capture glide, explosions, and a short beat.
+function presentDuelAftermath(result, approach) {
+  const p = presentation();
+  const attackerAfter = getUnitById(game, result.attackerId);
+  const defenderAfter = getUnitById(game, result.defenderId);
+  const target = { row: result.targetRow, col: result.targetCol };
+  const from = approach?.from || target;
+  const clash = { row: from.row + (target.row - from.row) * 0.56, col: from.col + (target.col - from.col) * 0.56 };
+  clearTween(p, result.attackerId);
+  if (result.winner === "attacker" && attackerAfter) {
+    pushBoardEffect(p, "destroyed", { ...target, faction: result.defenderFaction });
+    noteUnitMove(p, attackerAfter, clash, target, "settle", factionOfUnit(attackerAfter));
+    p.lastMove = { from, to: target, faction: factionOfUnit(attackerAfter), t: p.clockMs };
+    if (game.board[target.row][target.col].node) pushBoardEffect(p, "node", { ...target, faction: factionOfUnit(attackerAfter), delay: 300 });
+  } else if (result.winner === "defender" && defenderAfter) {
+    pushBoardEffect(p, "destroyed", { ...clash, faction: result.attackerFaction });
+  } else {
+    pushBoardEffect(p, "destroyed", { ...clash, faction: result.attackerFaction });
+    pushBoardEffect(p, "destroyed", { ...target, faction: result.defenderFaction, delay: 120 });
+  }
+  p.settleUntil = p.clockMs + 650;
+  audio.beep("ko");
 }
 
 function beginCommandPower(power) {
@@ -356,7 +614,28 @@ function handleBoardCommandClick(row, col, clickedUnit) {
   if (!action) {
     return false;
   }
+  if (action.type === "corrupt" || action.type === "repairAlly") {
+    const source = getUnitById(game, action.sourceUnitId);
+    const valid = source && abilityTargets(source).some((unit) => unit.id === clickedUnit?.id);
+    const ability = valid ? tryBoardAbility(game, source, clickedUnit) : { applied: false };
+    if (!ability.applied) {
+      game.boardAction = null;
+      if (source) {
+        game.selectedUnitId = source.id;
+        game.legalMoves = legalMovesForUnit(game, source);
+      }
+      pushLog(game, "Ability cancelled. Choose a move or a highlighted target.", "info");
+      audio.beep("cancel");
+      return true;
+    }
+    presentAbility(source, clickedUnit);
+    pushLog(game, ability.message, "info");
+    endTurnFlow();
+    return true;
+  }
   let result = { applied: false };
+  const commandFaction = game.turn;
+  let relayFrom = null;
   if (action.type === "gridLock") {
     result = applyGridLock(game, game.turn, row, col);
   } else if (action.type === "fieldRepair") {
@@ -379,10 +658,12 @@ function handleBoardCommandClick(row, col, clickedUnit) {
       pushLog(game, "Emergency Relay: choose a highlighted adjacent empty non-node square.", "info");
       return true;
     }
+    const relayUnit = getUnitById(game, action.sourceUnitId);
+    relayFrom = relayUnit ? { row: relayUnit.row, col: relayUnit.col } : null;
     result = applyEmergencyRelay(
       game,
       game.turn,
-      getUnitById(game, action.sourceUnitId),
+      relayUnit,
       row,
       col,
     );
@@ -393,20 +674,35 @@ function handleBoardCommandClick(row, col, clickedUnit) {
     audio.beep("bad");
     return true;
   }
+  presentCommand(action.type, commandFaction, row, col, clickedUnit, relayFrom, action.sourceUnitId);
   pushLog(game, result.message, "info");
-  audio.beep("special");
   endTurnFlow();
   return true;
 }
 
-function startDuelFromBoard(attacker, defender, row, col) {
+function presentCommand(type, faction, row, col, targetUnit, relayFrom, relayUnitId) {
+  const p = presentation();
+  if (type === "gridLock") {
+    pushBoardEffect(p, "lock", { row, col, faction });
+  } else if (type === "fieldRepair" && targetUnit) {
+    pushBoardEffect(p, "repair", { row: targetUnit.row, col: targetUnit.col, faction });
+  } else if (type === "emergencyRelay" && relayFrom) {
+    const unit = getUnitById(game, relayUnitId);
+    if (unit) presentMove(unit, relayFrom, "teleport");
+  }
+  audio.beep("command", { faction });
+}
+
+function startDuelFromBoard(attacker, defender, row, col, approached = false) {
+  const from = { row: attacker.row, col: attacker.col };
   transitionTopState(game, TopLevelState.COMBAT_INTRO, "duel started");
   setBoardTurnState(game, BoardTurnState.STARTING_COMBAT, "move into attack");
   startCombat(game, attacker, defender, row, col);
+  game.combat.approach = { from };
   input.resetAll();
   boardActionFocus = false;
   platform.focusGame();
-  audio.beep("attack");
+  if (!approached) audio.beep("clash", { faction: factionOfUnit(attacker) });
   renderer.resizeArena();
 }
 
@@ -429,8 +725,8 @@ function handleBoardClick(row, col) {
       game.selectedUnitId = clickedUnit.id;
       game.legalMoves = legalMovesForUnit(game, clickedUnit);
       setBoardTurnState(game, BoardTurnState.UNIT_SELECTED, "unit selected");
-      pushLog(game, `${clickedUnit.type} selected. Choose highlighted move.`, "info");
-      audio.beep("move");
+      pushLog(game, `${UNIT_DEFS[clickedUnit.type].name} selected. Choose a highlighted square.`, "info");
+      audio.beep("select", { faction: factionOfUnit(clickedUnit) });
       return;
     }
 
@@ -439,25 +735,46 @@ function handleBoardClick(row, col) {
     return;
   }
 
+  if (clickedUnit && clickedUnit.id === selected.id) {
+    clearSelection(game);
+    setBoardTurnState(game, BoardTurnState.AWAITING_SELECTION, "deselect");
+    pushLog(game, "Selection cleared. Choose a robot.", "info");
+    audio.beep("deselect");
+    return;
+  }
+
+  // A selected Pulse Medic repairs an adjacent damaged ally instead of
+  // switching selection to it (the ally square is never a legal move).
+  if (selected.type === "PM" && abilityTargets(selected).some((unit) => unit.id === clickedUnit?.id)) {
+    const repair = tryBoardAbility(game, selected, clickedUnit);
+    if (repair.applied) {
+      presentAbility(selected, clickedUnit);
+      pushLog(game, repair.message, "info");
+      endTurnFlow();
+      return;
+    }
+  }
+
   if (clickedUnit && canSelectUnit(game, clickedUnit) && clickedUnit.id !== selected.id) {
     game.selectedUnitId = clickedUnit.id;
     game.legalMoves = legalMovesForUnit(game, clickedUnit);
     setBoardTurnState(game, BoardTurnState.UNIT_SELECTED, "switch selected unit");
-    return;
-  }
-
-  const boardAbility = tryBoardAbility(game, selected, clickedUnit);
-  if (boardAbility.applied) {
-    pushLog(game, boardAbility.message, "info");
-    audio.beep("special");
-    endTurnFlow();
+    pushLog(game, `${UNIT_DEFS[clickedUnit.type].name} selected. Choose a highlighted square.`, "info");
+    audio.beep("select", { faction: factionOfUnit(clickedUnit) });
     return;
   }
 
   const legal = game.legalMoves.find((m) => m.row === row && m.col === col);
   if (!legal) {
-    pushLog(game, `Invalid move for ${selected.type}. Highlighted squares are legal.`, "bad");
-    audio.beep("bad");
+    if (!clickedUnit) {
+      clearSelection(game);
+      setBoardTurnState(game, BoardTurnState.AWAITING_SELECTION, "deselect");
+      pushLog(game, "Selection cleared. Choose a robot.", "info");
+      audio.beep("deselect");
+    } else {
+      pushLog(game, `${UNIT_DEFS[clickedUnit.type].name} is out of reach for ${UNIT_DEFS[selected.type].name}.`, "bad");
+      audio.beep("bad");
+    }
     return;
   }
 
@@ -468,17 +785,62 @@ function handleBoardClick(row, col) {
       pushLog(game, "Target unit no longer exists.", "bad");
       return;
     }
-    startDuelFromBoard(selected, defender, row, col);
+    pushLog(game, `${UNIT_DEFS[selected.type].name} attacks ${UNIT_DEFS[defender.type].name}!`, "info");
+    beginAttackApproach(selected, defender, row, col);
   } else {
+    const from = { row: selected.row, col: selected.col };
     moveUnitTo(selected, row, col);
-    pushLog(game, `${selected.type} moved.`, "info");
-    audio.beep("move");
+    presentMove(selected, from);
+    pushLog(game, `${UNIT_DEFS[selected.type].name} moved.`, "info");
+    audio.beep("move", { faction: factionOfUnit(selected) });
     endTurnFlow();
   }
 }
 
+// Adjacent units the selected support robot may affect with its board ability.
+function abilityTargets(unit) {
+  if (!unit?.alive || unit.lastAbilityTurn === game.turnCount) return [];
+  const faction = factionOfUnit(unit);
+  return game.units.filter((other) => {
+    if (!other.alive || other.id === unit.id) return false;
+    if (Math.max(Math.abs(other.row - unit.row), Math.abs(other.col - unit.col)) !== 1) return false;
+    const otherFaction = factionOfUnit(other);
+    if (unit.type === "PM") return otherFaction === faction && other.hp < other.maxHp;
+    if (unit.type === "CB") return otherFaction !== faction;
+    return false;
+  });
+}
+
+function beginBoardAbility() {
+  const selected = getUnitById(game, game.selectedUnitId);
+  if (game.topState !== TopLevelState.BOARD || !canSelectUnit(game, selected) || !abilityTargets(selected).length) return;
+  game.boardAction = { type: selected.type === "PM" ? "repairAlly" : "corrupt", sourceUnitId: selected.id };
+  game.legalMoves = [];
+  // Hand the pad back to the board cursor, as command powers do.
+  boardActionFocus = false;
+  focusControl(null);
+  if (input.getSnapshot().lastDevice === "gamepad") {
+    const first = abilityTargets(selected)[0];
+    game.boardCursor = { row: first.row, col: first.col, visible: true };
+  }
+  pushLog(game, selected.type === "PM" ? "Repair: choose a highlighted damaged ally." : "Corrupt: choose a highlighted adjacent enemy.", "info");
+  audio.beep("command", { faction: factionOfUnit(selected) });
+  platform.focusGame();
+}
+
+function presentAbility(actor, target) {
+  const p = presentation();
+  if (actor.type === "PM") pushBoardEffect(p, "repair", { row: target.row, col: target.col, faction: "S" });
+  else pushBoardEffect(p, "weaken", { row: target.row, col: target.col, faction: "V" });
+  audio.beep(actor.type === "PM" ? "heal" : "corrupt", { faction: factionOfUnit(actor) });
+}
+
 function runBoardAiTick() {
   if (game.mode !== "ai" || game.turn !== "V" || game.topState !== TopLevelState.BOARD) {
+    return;
+  }
+  // Wait for the player's move to finish landing before the AI acts.
+  if (isBoardBusy(presentation())) {
     return;
   }
 
@@ -487,7 +849,26 @@ function runBoardAiTick() {
     return;
   }
 
+  const p = presentation();
+  const pending = game.aiPendingChoice;
+  if (pending) {
+    if (p.clockMs < pending.at) return;
+    game.aiPendingChoice = null;
+    clearSelection(game);
+    executeBoardAiChoice(pending.choice);
+    return;
+  }
   const choice = chooseBoardAiAction(game);
+  // Telegraph the AI's intent: highlight the robot and its destination first.
+  const actor = choice?.unitId ? getUnitById(game, choice.unitId) : null;
+  if (!p.instant && actor && (choice.kind === "move" || choice.kind === "ability")) {
+    game.selectedUnitId = actor.id;
+    const target = choice.kind === "move" ? choice.move : getUnitById(game, choice.targetId);
+    game.legalMoves = target ? [{ row: target.row, col: target.col, attack: Boolean(choice.move?.attack), targetId: choice.move?.targetId }] : [];
+    game.aiPendingChoice = { choice, at: p.clockMs + 420 };
+    audio.beep("select", { faction: "V" });
+    return;
+  }
   executeBoardAiChoice(choice);
 }
 
@@ -504,8 +885,8 @@ function executeBoardAiChoice(choice) {
     const target = getUnitById(game, choice.targetId);
     const result = tryBoardAbility(game, actor, target);
     if (result.applied) {
+      presentAbility(actor, target);
       pushLog(game, result.message, "info");
-      audio.beep("special");
       endTurnFlow();
       return "turn";
     }
@@ -513,22 +894,28 @@ function executeBoardAiChoice(choice) {
 
   if (choice.kind === "command") {
     let result = { applied: false };
+    const faction = game.turn;
+    let relayFrom = null;
+    let repairTarget = null;
     if (choice.power === "gridLock") {
       result = applyGridLock(game, game.turn, choice.row, choice.col);
     } else if (choice.power === "fieldRepair") {
-      result = applyFieldRepair(game, game.turn, getUnitById(game, choice.targetId));
+      repairTarget = getUnitById(game, choice.targetId);
+      result = applyFieldRepair(game, game.turn, repairTarget);
     } else if (choice.power === "emergencyRelay") {
+      const relayUnit = getUnitById(game, choice.unitId);
+      relayFrom = relayUnit ? { row: relayUnit.row, col: relayUnit.col } : null;
       result = applyEmergencyRelay(
         game,
         game.turn,
-        getUnitById(game, choice.unitId),
+        relayUnit,
         choice.row,
         choice.col,
       );
     }
     if (result.applied) {
+      presentCommand(choice.power, faction, choice.row, choice.col, repairTarget, relayFrom, choice.unitId);
       pushLog(game, `${factionName} used ${result.message}`, "info");
-      audio.beep("special");
       endTurnFlow();
       return "turn";
     }
@@ -547,13 +934,16 @@ function executeBoardAiChoice(choice) {
       endTurnFlow();
       return "turn";
     }
-    startDuelFromBoard(actor, target, choice.move.row, choice.move.col);
+    pushLog(game, `${factionName} ${UNIT_DEFS[actor.type].name} attacks ${UNIT_DEFS[target.type].name}!`, "info");
+    beginAttackApproach(actor, target, choice.move.row, choice.move.col);
     return "combat";
   }
 
+  const from = { row: actor.row, col: actor.col };
   moveUnitTo(actor, choice.move.row, choice.move.col);
-  pushLog(game, `${factionName} moved ${actor.type}.`, "info");
-  audio.beep("move");
+  presentMove(actor, from);
+  pushLog(game, `${factionName} moved ${UNIT_DEFS[actor.type].name}.`, "info");
+  audio.beep("move", { faction: factionOfUnit(actor) });
   endTurnFlow();
   return "turn";
 }
@@ -575,16 +965,27 @@ function handleGlobalActions(actions) {
     return true;
   }
 
-  if (actions.toggleDebug) {
+  if (actions.toggleDebug && DEBUG_ALLOWED) {
     game.debug.enabled = !game.debug.enabled;
     ui.toggleDebug(game.debug.enabled);
     input.resetAll();
     return true;
   }
 
-  if (actions.restart && game.topState !== TopLevelState.TITLE) {
-    if (game.practice) startPractice();
-    else startNewGame(game.mode, game.difficulty);
+  if (actions.restart && game.topState !== TopLevelState.TITLE && game.topState !== TopLevelState.GAME_OVER) {
+    // R sits beside the Fire keys: require a second press to discard a match.
+    const now = performance.now();
+    if (now < restartArmedUntil || game.practice) {
+      restartArmedUntil = 0;
+      if (game.practice) startPractice();
+      else startNewGame(game.mode, game.difficulty);
+    } else {
+      restartArmedUntil = now + 2500;
+      const notice = "Press R again to restart the match.";
+      if (game.combat) game.combat.message = notice;
+      else pushLog(game, notice, "bad");
+      audio.beep("warning");
+    }
     return true;
   }
 
@@ -602,8 +1003,38 @@ function handleGlobalActions(actions) {
   return false;
 }
 
+// One soundtrack state per screen; playMusic with the same track only re-voices.
+function syncMusic() {
+  if (typeof audio.playMusic !== "function") return;
+  const state = game.topState;
+  const overlay = state === TopLevelState.HELP || game.combat?.paused;
+  // Lift the overlay duck while a volume slider has focus, so its level is honest.
+  const adjusting = document.activeElement?.matches?.("input[data-volume]");
+  audio.setMusicDuck?.(overlay && !adjusting ? 0.45 : 1);
+  if (state === TopLevelState.TITLE || (state === TopLevelState.HELP && helpReturnState === TopLevelState.TITLE)) {
+    audio.playMusic("title");
+  } else if (state === TopLevelState.GAME_OVER || game.presentation.pendingGameOver || (state === TopLevelState.HELP && helpReturnState === TopLevelState.GAME_OVER)) {
+    const winner = game.winner || game.presentation.pendingGameOver?.winner;
+    if (winner === "draw") audio.playMusic("defeat");
+    else if (game.mode === "pvp") audio.playMusic("victory", { faction: winner });
+    else audio.playMusic(winner === "S" ? "victory" : "defeat", { faction: "S" });
+  } else if (game.combat) {
+    audio.playMusic("duel", { intensity: game.combat.overtimeStage || 0 });
+    audio.setMusicIntensity?.(game.combat.overtimeStage || 0);
+  } else if (game.board.length) {
+    audio.playMusic("board", { faction: game.turn });
+  }
+}
+
 function updateGame(deltaSec) {
   let actions = input.update();
+  const stateBeforeTimers = game.topState;
+  if (game.topState !== TopLevelState.HELP) {
+    advancePresentation(game.presentation, deltaSec);
+    updatePresentationTimers();
+  }
+  // Input read under the reveal/approach state must not act on the screen a timer just opened.
+  if (game.topState !== stateBeforeTimers) actions = input.defaultActions();
   const previousState = game.topState;
   const consumed = handleGlobalActions(actions);
   if (!consumed) navigateInterface(actions);
@@ -638,10 +1069,15 @@ function updateGame(deltaSec) {
         setGameOver(result.winner === "attacker" ? "S" : result.winner === "defender" ? "V" : "draw", "Practice complete. Retry to build your combat rhythm.");
         return;
       }
+      const approach = game.combat.approach;
+      result.attackerFaction = UNIT_DEFS[game.combat.fighters[0].unit.type].faction;
+      result.defenderFaction = UNIT_DEFS[game.combat.fighters[1].unit.type].faction;
+      recordDuelStats(result, game.combat);
       applyDuelResolutionToBoard(game, result);
       game.combat = null;
       transitionTopState(game, TopLevelState.BOARD, "combat ended");
       pushLog(game, result.reason, "info");
+      presentDuelAftermath(result, approach);
       input.resetAll();
 
       const commandWinner = checkCommandWinner(game);
@@ -663,6 +1099,8 @@ function syncUi() {
   const inputSnapshot = input.getSnapshot();
   ui.updateInputStatus(inputSnapshot);
   ui.setMuted(game.muted);
+  ui.setLabels(showUnitLabels);
+  ui.setVolumes(volumes);
   if (game.topState === TopLevelState.HELP) {
     // Help is a modal overlay: keep whatever screen is underneath and do not
     // touch board/combat HUD (the board grid may be empty at the title).
@@ -693,8 +1131,16 @@ function syncUi() {
 
   ui.showScreen("boardScreen");
   renderer.resizeBoard();
-  ui.setLog(game.message, game.messageKind);
+  ui.setLog(game.message, game.messageKind, game.logs);
   game.nodeControl = getPowerNodeControl(game);
+  const selectedForAbility = getUnitById(game, game.selectedUnitId);
+  game.abilityTargets = game.boardAction?.type === "corrupt" || game.boardAction?.type === "repairAlly"
+    ? abilityTargets(getUnitById(game, game.boardAction.sourceUnitId)).map((unit) => ({ row: unit.row, col: unit.col }))
+    : selectedForAbility?.type === "PM" && !game.boardAction
+      ? abilityTargets(selectedForAbility).map((unit) => ({ row: unit.row, col: unit.col }))
+      : [];
+  game.abilityAvailable = Boolean(selectedForAbility && canSelectUnit(game, selectedForAbility) && !game.boardAction &&
+    ["PM", "CB"].includes(selectedForAbility.type) && abilityTargets(selectedForAbility).length);
   game.commanderAlive = {
     S: Boolean(getLivingCommandUnit(game, "S")),
     V: Boolean(getLivingCommandUnit(game, "V")),
@@ -705,7 +1151,8 @@ function syncUi() {
 
 function draw() {
   const boardReady = Array.isArray(game.board) && game.board.length === 9;
-  if (boardReady && (game.topState === TopLevelState.BOARD || game.topState === TopLevelState.HELP)) {
+  if (boardReady && !game.combat && [TopLevelState.BOARD, TopLevelState.BOARD_ANIMATING, TopLevelState.HELP].includes(game.topState)) {
+    if (game.boardCursor?.visible) game.presentation.hover = { row: game.boardCursor.row, col: game.boardCursor.col };
     renderer.drawBoard(game);
   }
   if (game.combat) {
@@ -731,6 +1178,8 @@ function draw() {
 
 let last = performance.now();
 function loop(now) {
+  // Schedule first: one renderer exception must not stop the game for good.
+  requestAnimationFrame(loop);
   const deltaSec = Math.min(0.033, (now - last) / 1000);
   last = now;
   if (now - lastViewportCheck > 500) {
@@ -740,21 +1189,58 @@ function loop(now) {
   updateGame(deltaSec);
   syncUi();
   draw();
-  requestAnimationFrame(loop);
+  syncMusic();
+  audio.update?.();
+}
+
+// Two-step activation for actions that discard a match in progress.
+function confirmable(button, prompt, action, needsConfirm = () => true) {
+  if (!button) return;
+  const label = button.textContent;
+  let armedUntil = 0;
+  let timer = null;
+  const disarm = () => {
+    armedUntil = 0;
+    button.textContent = label;
+    button.classList.remove("is-confirming");
+  };
+  button.addEventListener("click", () => {
+    const now = performance.now();
+    if (!needsConfirm() || now < armedUntil) {
+      clearTimeout(timer);
+      disarm();
+      action();
+      return;
+    }
+    armedUntil = now + 3000;
+    button.textContent = prompt;
+    button.classList.add("is-confirming");
+    clearTimeout(timer);
+    timer = setTimeout(disarm, 3000);
+  });
 }
 
 function bindUiButtons() {
   document.getElementById("newAI").addEventListener("click", () => startNewGame("ai"));
-  document.getElementById("newAI2").addEventListener("click", () => {
-    document.getElementById("difficultySelect").value = "hard";
-    startNewGame("ai", "hard");
-  });
   document.getElementById("newPVP").addEventListener("click", () => startNewGame("pvp"));
   document.getElementById("practiceBtn").addEventListener("click", startPractice);
+  document.getElementById("titleMute")?.addEventListener("click", () => {
+    game.muted = !game.muted;
+    ui.setMuted(game.muted);
+  });
+  for (const slider of document.querySelectorAll("input[data-volume]")) {
+    slider.addEventListener("input", () => setVolume(slider.dataset.volume, slider.value));
+    // A sample blip at the new effects level once the drag settles.
+    slider.addEventListener("change", () => { if (slider.dataset.volume === "sfx") audio.beep("uiConfirm"); });
+  }
 
-  document.getElementById("endRestartAI").addEventListener("click", () => game.practice ? startPractice() : startNewGame("ai", game.difficulty));
-  document.getElementById("endRestartPVP").addEventListener("click", () => startNewGame("pvp", game.difficulty));
-  for (const id of ["endMenu", "boardExit", "combatExit"]) document.getElementById(id)?.addEventListener("click", returnToTitle);
+  // Rematch keeps the finished mode; the second button offers the other one.
+  document.getElementById("endRestartAI").addEventListener("click", () => game.practice ? startPractice() : startNewGame(game.mode, game.difficulty));
+  document.getElementById("endRestartPVP").addEventListener("click", () => startNewGame(game.mode === "pvp" ? "ai" : "pvp", game.difficulty));
+  document.getElementById("endMenu")?.addEventListener("click", returnToTitle);
+  for (const id of ["boardExit", "combatExit"]) {
+    confirmable(document.getElementById(id), "Leave match?", returnToTitle, () => !game.practice && !game.winner);
+  }
   document.getElementById("combatHelp").addEventListener("click", () => setHelpVisible(true));
   document.getElementById("combatMute").addEventListener("click", () => {
     game.muted = !game.muted;
@@ -780,23 +1266,47 @@ function bindUiButtons() {
     ui.setMuted(game.muted);
   });
 
-  document.getElementById("restartBtn").addEventListener("click", () => {
+  confirmable(document.getElementById("restartBtn"), "Confirm restart", () => {
     if (game.topState !== TopLevelState.TITLE) {
       startNewGame(game.mode, game.difficulty);
     }
   });
 
+  document.getElementById("abilityBtn")?.addEventListener("click", beginBoardAbility);
   document.getElementById("gridLockBtn").addEventListener("click", () => beginCommandPower("gridLock"));
   document.getElementById("fieldRepairBtn").addEventListener("click", () => beginCommandPower("fieldRepair"));
   document.getElementById("relayBtn").addEventListener("click", () => beginCommandPower("emergencyRelay"));
   document.getElementById("cancelCommandBtn").addEventListener("click", () => {
+    const source = game.boardAction?.sourceUnitId ? getUnitById(game, game.boardAction.sourceUnitId) : null;
+    const ability = ["corrupt", "repairAlly"].includes(game.boardAction?.type);
     game.boardAction = null;
     game.legalMoves = [];
-    pushLog(game, "Command targeting cancelled.", "info");
+    if (ability && source) {
+      game.selectedUnitId = source.id;
+      game.legalMoves = legalMovesForUnit(game, source);
+    }
+    pushLog(game, ability ? "Ability cancelled." : "Command targeting cancelled.", "info");
+    audio.beep("cancel");
   });
 
   document.getElementById("pauseBtn").addEventListener("click", () => {
     if (game.combat) setPaused(!game.combat.paused);
+  });
+
+  boardCanvas.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") return;
+    const { row, col } = renderer.boardPointToCell(event);
+    const inside = row >= 0 && row <= 8 && col >= 0 && col <= 8;
+    game.presentation.hover = inside ? { row, col } : null;
+    if (inside && game.boardCursor.visible && input.getSnapshot().lastDevice !== "gamepad") game.boardCursor.visible = false;
+  });
+  boardCanvas.addEventListener("pointerleave", () => { game.presentation.hover = null; });
+
+  document.getElementById("labelsBtn")?.addEventListener("click", () => {
+    showUnitLabels = !showUnitLabels;
+    game.presentation.showLabels = showUnitLabels;
+    writeStoredFlag("cd.showLabels", showUnitLabels);
+    ui.setLabels(showUnitLabels);
   });
 
   boardCanvas.addEventListener("pointerdown", (event) => {
@@ -814,12 +1324,22 @@ function bindUiButtons() {
   window.addEventListener("orientationchange", checkViewport);
   window.addEventListener("blur", () => suspendPlay("Window lost focus"));
   document.addEventListener("visibilitychange", () => { if (document.hidden) suspendPlay("App in background"); });
+  // Help is modal: Tab cycles only through its own links, sliders and buttons.
   document.addEventListener("keydown", event => {
-    if (game.topState === TopLevelState.HELP && event.code === "Tab") {
-      event.preventDefault();
-      document.getElementById("closeHelp").focus({preventScroll:true});
-    }
+    if (game.topState !== TopLevelState.HELP || event.code !== "Tab") return;
+    event.preventDefault();
+    const items = [...document.querySelectorAll("#helpOverlay a[href], #helpOverlay input, #helpOverlay button")]
+      .filter(element => !element.disabled && element.getClientRects().length);
+    const close = document.getElementById("closeHelp");
+    const index = items.indexOf(document.activeElement);
+    const next = index < 0 ? close : items[(index + (event.shiftKey ? -1 : 1) + items.length) % items.length];
+    (next || close).focus({preventScroll:true});
   }, true);
+
+  // A soft confirm tick for menu and end-screen buttons (actions add their own).
+  for (const button of document.querySelectorAll("#titleScreen button, #endScreen button, #helpOverlay button")) {
+    button.addEventListener("click", () => audio.beep("uiConfirm"));
+  }
 
   // Non-primary touches (e.g. Pause with the third finger while moving/firing)
   // emit pointerup but no compatibility click. Activate on a deliberate touch
@@ -993,8 +1513,8 @@ function ensureQaBridge() {
     });
 
     host.innerHTML = [
-      '<textarea id="cdTestCommand" aria-label="Circuit Dominion QA command" style="width:12px;height:12px;padding:0;margin:0;border:0;"></textarea>',
-      '<button id="cdTestRun" type="button" style="width:12px;height:12px;padding:0;margin:0;border:0;">Run QA</button>',
+      '<textarea id="cdTestCommand" tabindex="-1" aria-label="Circuit Dominion QA command" style="width:12px;height:12px;padding:0;margin:0;border:0;"></textarea>',
+      '<button id="cdTestRun" type="button" tabindex="-1" style="width:12px;height:12px;padding:0;margin:0;border:0;">Run QA</button>',
       '<script id="cdTestState" type="application/json"></script>',
     ].join("");
 
@@ -1017,6 +1537,8 @@ function writeQaBridge(payload) {
 }
 
 function syncQaBridge() {
+  // Serializing the whole game every frame is only useful once automation is attached.
+  if (!qaBridgeUsed) return;
   const bridge = document.getElementById("cdTestState");
   if (bridge) {
     bridge.textContent = JSON.stringify(buildQaSnapshot());
@@ -1282,10 +1804,38 @@ function installQaTestHook() {
       endTurnFlow();
       return qaFlush();
     },
+    boardCellClientPoint(row, col) {
+      const rect = boardCanvas.getBoundingClientRect();
+      const { cell, ox, oy } = renderer.boardGeometry();
+      return { x: rect.left + ox + (col + 0.5) * cell, y: rect.top + oy + (row + 0.5) * cell, cell };
+    },
+    presentationState() {
+      const p = game.presentation;
+      return { instant: p.instant, busy: isBoardBusy(p), clockMs: p.clockMs, tweens: p.tweens.size,
+        pendingDuel: Boolean(p.pendingDuel), pendingGameOver: Boolean(p.pendingGameOver), banner: p.banner?.text || null };
+    },
     autoPlayFullMatch(maxTurns = 180, seed = 24681357) {
       return runQaAutomatedMatch(maxTurns, seed);
     },
   };
+
+  // Once automation touches the bridge, keep presentation instantaneous so
+  // existing timing contracts hold; visual tests may opt back in.
+  window.__CD_TEST__.setInstantPresentation = (on = true) => {
+    qaInstantPresentation = Boolean(on);
+    game.presentation.instant = qaInstantPresentation;
+    return qaFlush();
+  };
+  for (const [name, fn] of Object.entries(window.__CD_TEST__)) {
+    if (typeof fn !== "function" || name === "setInstantPresentation") continue;
+    window.__CD_TEST__[name] = function qaCall(...args) {
+      qaBridgeUsed = true;
+      game.presentation.instant = qaInstantPresentation;
+      const value = fn.apply(window.__CD_TEST__, args);
+      game.presentation.instant = qaInstantPresentation;
+      return value;
+    };
+  }
 
   ensureQaBridge();
   const runButton = document.getElementById("cdTestRun");

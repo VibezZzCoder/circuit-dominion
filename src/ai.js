@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 import {
   canUseCommandPower,
+  energyModifierForFaction,
   getLivingFactionUnits,
   getPowerNodeControl,
   getUnitAt,
@@ -37,12 +39,13 @@ function nearestNodeDistance(row, col) {
 export function estimateDuelOdds(attacker, defender, energy) {
   const attackerDef = UNIT_DEFS[attacker.type];
   const defenderDef = UNIT_DEFS[defender.type];
-  const attackerAligned = factionEnergy(attackerDef.faction) === energy;
-  const defenderAligned = factionEnergy(defenderDef.faction) === energy;
-  const attackerHpModifier = attackerAligned ? 1.08 : 1;
-  const defenderHpModifier = defenderAligned ? 1.08 : 1;
-  const attackerDamageModifier = attackerAligned ? 1.08 : energy === ENERGY.NEUTRAL ? 1 : 0.94;
-  const defenderDamageModifier = defenderAligned ? 1.08 : energy === ENERGY.NEUTRAL ? 1 : 0.94;
+  // Same terrain rule the duel applies (single source in board.js).
+  const attackerMod = energyModifierForFaction(attackerDef.faction, energy);
+  const defenderMod = energyModifierForFaction(defenderDef.faction, energy);
+  const attackerHpModifier = attackerMod.hp;
+  const defenderHpModifier = defenderMod.hp;
+  const attackerDamageModifier = attackerMod.damage;
+  const defenderDamageModifier = defenderMod.damage;
   const attackerDps = attackerDef.attack.damage / attackerDef.attack.cooldown;
   const defenderDps = defenderDef.attack.damage / defenderDef.attack.cooldown;
   const attackerRangeValue = Math.min(attackerDef.attack.range, 520) / 520;

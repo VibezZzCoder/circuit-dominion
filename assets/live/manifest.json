@@ -1,36 +1,58 @@
 {
   "schemaVersion": 1,
   "license": "GPL-3.0-or-later",
-  "generatedBy": "OpenAI image generation; original assets locally normalized, cover sprites use unmodified generated PNGs with source-rectangle metadata",
-  "notes": "Runtime assets are original generated art for Circuit Dominion. Procedural renderers remain as fallbacks.",
+  "generatedBy": "OpenAI image generation; original assets locally normalized and cleaned (see assets/work/cleanup-20261027/clean_assets.py)",
+  "notes": "Runtime assets are original generated art for Circuit Dominion. The board is drawn procedurally; image-backed visuals keep procedural fallbacks.",
   "assets": [
     {
       "id": "environment.cover-horizontal",
       "type": "environment-sprite",
       "path": "assets/live/sprites/environment/cover-horizontal.png",
-      "nativeWidth": 1634,
-      "nativeHeight": 963,
-      "sourceRect": { "x": 62, "y": 49, "width": 1510, "height": 839 },
+      "nativeWidth": 368,
+      "nativeHeight": 216,
+      "sourceRect": {
+        "x": 0,
+        "y": 0,
+        "width": 368,
+        "height": 216
+      },
       "drawWidth": 92,
       "drawHeight": 54,
-      "anchor": { "x": 0, "y": 0 },
-      "offset": { "x": 0, "y": 0 },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
       "fallbackRendererId": "procedural-cover",
-      "notes": "AI-generated armored cover, selected for this project; source crop excludes transparent margins. Art fills the existing collision rectangle without changing physics. Not a claim of exclusive copyright in AI-generated pixels."
+      "notes": "AI-generated armored cover, cropped to its art and resampled to 4x draw size (2026-10-28). Art fills the existing collision rectangle without changing physics. Not a claim of exclusive copyright in AI-generated pixels."
     },
     {
       "id": "environment.cover-vertical",
       "type": "environment-sprite",
       "path": "assets/live/sprites/environment/cover-vertical.png",
-      "nativeWidth": 1034,
-      "nativeHeight": 1521,
-      "sourceRect": { "x": 48, "y": 82, "width": 936, "height": 1331 },
+      "nativeWidth": 304,
+      "nativeHeight": 448,
+      "sourceRect": {
+        "x": 0,
+        "y": 0,
+        "width": 304,
+        "height": 448
+      },
       "drawWidth": 76,
       "drawHeight": 112,
-      "anchor": { "x": 0, "y": 0 },
-      "offset": { "x": 0, "y": 0 },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
       "fallbackRendererId": "procedural-cover",
-      "notes": "AI-generated armored cover, selected for this project; source crop excludes transparent margins. Art fills the existing collision rectangle without changing physics. Not a claim of exclusive copyright in AI-generated pixels."
+      "notes": "AI-generated armored cover, cropped to its art and resampled to 4x draw size (2026-10-28). Art fills the existing collision rectangle without changing physics. Not a claim of exclusive copyright in AI-generated pixels."
     },
     {
       "id": "background.title-landscape",
@@ -69,29 +91,11 @@
       "notes": "Generated neon sci-fi background with procedural fallback."
     },
     {
-      "id": "background.board-grid",
-      "type": "background",
-      "path": "assets/live/backgrounds/board-grid.webp",
-      "nativeWidth": 1536,
-      "nativeHeight": 1536,
-      "displayScale": 1,
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      },
-      "offset": {
-        "x": 0,
-        "y": 0
-      },
-      "fallbackRendererId": "procedural-board-grid",
-      "notes": "Generated neon sci-fi background with procedural fallback."
-    },
-    {
       "id": "background.combat-arena",
       "type": "background",
       "path": "assets/live/backgrounds/combat-arena.webp",
       "nativeWidth": 1920,
-      "nativeHeight": 1080,
+      "nativeHeight": 1040,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
@@ -102,7 +106,7 @@
         "y": 0
       },
       "fallbackRendererId": "procedural-combat-arena",
-      "notes": "Generated neon sci-fi background with procedural fallback."
+      "notes": "Generated top-down duel floor (2026-10-28), 2x the 960x520 arena, faction-neutral; the renderer tints it per polarity. Procedural fallback. Previous three-quarter arena kept in assets/work/retired-20261028/."
     },
     {
       "id": "unit.CC",
@@ -111,29 +115,19 @@
       "unitId": "CC",
       "unitName": "Core Commander",
       "path": "assets/live/sprites/units/solar-core-commander.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 0,
-          "y": 0,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.92
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.PS",
@@ -142,29 +136,19 @@
       "unitId": "PS",
       "unitName": "Photon Striker",
       "path": "assets/live/sprites/units/solar-photon-striker.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 512,
-          "y": 0,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.908
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.AS",
@@ -173,29 +157,19 @@
       "unitId": "AS",
       "unitName": "Arc Sniper",
       "path": "assets/live/sprites/units/solar-arc-sniper.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 1024,
-          "y": 0,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.92
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.SD",
@@ -204,29 +178,19 @@
       "unitId": "SD",
       "unitName": "Shield Drone",
       "path": "assets/live/sprites/units/solar-shield-drone.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 1536,
-          "y": 0,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.92
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.PM",
@@ -235,29 +199,19 @@
       "unitId": "PM",
       "unitName": "Pulse Medic",
       "path": "assets/live/sprites/units/solar-pulse-medic.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 0,
-          "y": 512,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.791
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.NW",
@@ -266,29 +220,19 @@
       "unitId": "NW",
       "unitName": "Nova Walker",
       "path": "assets/live/sprites/units/solar-nova-walker.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 512,
-          "y": 512,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.838
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the first-pass unit sheet."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.NO",
@@ -297,29 +241,19 @@
       "unitId": "NO",
       "unitName": "Null Overlord",
       "path": "assets/live/sprites/units/void-null-overlord.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 1024,
-          "y": 512,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.92
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.RC",
@@ -328,29 +262,19 @@
       "unitId": "RC",
       "unitName": "Razor Crawler",
       "path": "assets/live/sprites/units/void-razor-crawler.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 1536,
-          "y": 512,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.828
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.EC",
@@ -359,29 +283,19 @@
       "unitId": "EC",
       "unitName": "Entropy Cannon",
       "path": "assets/live/sprites/units/void-entropy-cannon.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 0,
-          "y": 1024,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.822
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.GW",
@@ -390,29 +304,19 @@
       "unitId": "GW",
       "unitName": "Glitch Wraith",
       "path": "assets/live/sprites/units/void-glitch-wraith.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 512,
-          "y": 1024,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.92
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.CB",
@@ -421,29 +325,19 @@
       "unitId": "CB",
       "unitName": "Corruptor Bot",
       "path": "assets/live/sprites/units/void-corruptor-bot.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 1024,
-          "y": 1024,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.861
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
       "id": "unit.GB",
@@ -452,47 +346,295 @@
       "unitId": "GB",
       "unitName": "Gravity Bruiser",
       "path": "assets/live/sprites/units/void-gravity-bruiser.png",
-      "sheet": {
-        "id": "sheet.units-static",
-        "path": "assets/live/sprites/sheets/units-static.png",
-        "frame": {
-          "x": 1536,
-          "y": 1024,
-          "w": 512,
-          "h": 512
-        }
-      },
       "nativeWidth": 512,
       "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.805
       },
       "offset": {
         "x": 0,
         "y": 0
       },
       "fallbackRendererId": "procedural-unit-shape",
-      "notes": "Static generated sprite normalized from the Void replacement sheet to avoid edge clipping."
+      "notes": "Generated sprite, cleaned 2026-10-28: green-key holes restored, stray islands removed, edge fringe decontaminated. Anchor y is the feet baseline."
     },
     {
-      "id": "sheet.units-static",
-      "type": "sprite-sheet",
-      "path": "assets/live/sprites/sheets/units-static.png",
-      "nativeWidth": 2048,
-      "nativeHeight": 1536,
+      "id": "unit.CC.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "solar",
+      "unitId": "CC",
+      "unitName": "Core Commander",
+      "path": "assets/live/sprites/units/solar-core-commander-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
       "displayScale": 1,
       "anchor": {
         "x": 0.5,
-        "y": 0.55
+        "y": 0.92
       },
       "offset": {
         "x": 0,
         "y": 0
       },
-      "fallbackRendererId": "procedural-unit-shape",
-      "notes": "4 columns by 3 rows, 512px cells, assembled from final individual unit sprite files."
+      "facing": 1,
+      "fallbackRendererId": "unit.CC",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.PS.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "solar",
+      "unitId": "PS",
+      "unitName": "Photon Striker",
+      "path": "assets/live/sprites/units/solar-photon-striker-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.908
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": -1,
+      "fallbackRendererId": "unit.PS",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.AS.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "solar",
+      "unitId": "AS",
+      "unitName": "Arc Sniper",
+      "path": "assets/live/sprites/units/solar-arc-sniper-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.AS",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.SD.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "solar",
+      "unitId": "SD",
+      "unitName": "Shield Drone",
+      "path": "assets/live/sprites/units/solar-shield-drone-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.SD",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.PM.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "solar",
+      "unitId": "PM",
+      "unitName": "Pulse Medic",
+      "path": "assets/live/sprites/units/solar-pulse-medic-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.791
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.PM",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.NW.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "solar",
+      "unitId": "NW",
+      "unitName": "Nova Walker",
+      "path": "assets/live/sprites/units/solar-nova-walker-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.838
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.NW",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.NO.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "void",
+      "unitId": "NO",
+      "unitName": "Null Overlord",
+      "path": "assets/live/sprites/units/void-null-overlord-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.NO",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.RC.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "void",
+      "unitId": "RC",
+      "unitName": "Razor Crawler",
+      "path": "assets/live/sprites/units/void-razor-crawler-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.828
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": -1,
+      "fallbackRendererId": "unit.RC",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.EC.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "void",
+      "unitId": "EC",
+      "unitName": "Entropy Cannon",
+      "path": "assets/live/sprites/units/void-entropy-cannon-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.822
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": -1,
+      "fallbackRendererId": "unit.EC",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.GW.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "void",
+      "unitId": "GW",
+      "unitName": "Glitch Wraith",
+      "path": "assets/live/sprites/units/void-glitch-wraith-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": -1,
+      "fallbackRendererId": "unit.GW",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.CB.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "void",
+      "unitId": "CB",
+      "unitName": "Corruptor Bot",
+      "path": "assets/live/sprites/units/void-corruptor-bot-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.861
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.CB",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
+    },
+    {
+      "id": "unit.GB.attack",
+      "type": "unit-pose",
+      "pose": "attack",
+      "faction": "void",
+      "unitId": "GB",
+      "unitName": "Gravity Bruiser",
+      "path": "assets/live/sprites/units/void-gravity-bruiser-attack.webp",
+      "nativeWidth": 512,
+      "nativeHeight": 512,
+      "displayScale": 1,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.805
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "facing": 1,
+      "fallbackRendererId": "unit.GB",
+      "notes": "Generated attack pose (2026-10-28), fitted by alpha overlap onto the idle sprite (assets/work/art-20261028/fit_live.py). Shown briefly on swing/shot/special; facing is the direction the strike points (+1 right, -1 left). Falls back to the idle sprite."
     }
   ]
 }

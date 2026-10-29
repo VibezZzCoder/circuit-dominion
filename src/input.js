@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 import { clamp } from "./utils.js";
 
 const ROLES = ["p1", "p2"];
 const BUFFER_MS = { attack: 180, special: 220 };
+const POINTER_AIM_IDLE_MS = 1600;
 const PLAY_KEYS = new Set(["Space", "KeyF", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Slash", "ShiftLeft", "ShiftRight", "KeyW", "KeyA", "KeyS", "KeyD"]);
 const COMBAT_STATES = new Set(["combatIntro", "combatCountdown", "combatActive", "combatResolving"]);
 const DIRECTION_KEYS = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1] };
@@ -104,7 +106,7 @@ export class InputManager {
   onKeyDown(event) {
     if (nativeKeyOwner(event)) return;
     const state = this.getTopState();
-    if ((this.isCombat() || state === "board") && PLAY_KEYS.has(event.code)) event.preventDefault();
+    if ((this.isCombat() || state === "board" || state === "boardAnimating") && PLAY_KEYS.has(event.code)) event.preventDefault();
     if (event.repeat || this.keys[event.code]) return;
     // A non-repeating keydown is a fresh press, including after a keyup was lost
     // while another application had focus. OS repeat alone cannot revive a reset.
@@ -200,7 +202,10 @@ export class InputManager {
       this.actions[`${role}Special`] = this.buffers[role].special >= now;
       this.actions[`${role}AimX`] = aim.x;
       this.actions[`${role}AimY`] = aim.y;
-      this.actions[`${role}AimPoint`] = this.pointerAim[role] ? { ...this.pointerAim[role] } : null;
+      // A resting mouse stops overriding aim assist; holding the button keeps it.
+      const pointer = this.pointerAim[role];
+      if (pointer && !this.pointerAttackHeld[role] && now - (pointer.at ?? now) > POINTER_AIM_IDLE_MS) this.pointerAim[role] = null;
+      this.actions[`${role}AimPoint`] = this.pointerAim[role] ? { x: this.pointerAim[role].x, y: this.pointerAim[role].y } : null;
       this.actions[`${role}ManualAim`] = Math.hypot(aim.x, aim.y) > 0 || Boolean(this.pointerAim[role]);
     }
     if (!this.isCombat()) {
@@ -240,7 +245,7 @@ export class InputManager {
   setPointerAim(role, x, y) {
     if (!ROLES.includes(role) || !Number.isFinite(x) || !Number.isFinite(y)) return;
     this.noteDevice("keyboard");
-    this.pointerAim[role] = { x, y };
+    this.pointerAim[role] = { x, y, at: this.clock() };
   }
   clearPointerAim(role) { if (ROLES.includes(role)) this.pointerAim[role] = null; }
   setPointerAttack(role, held) {

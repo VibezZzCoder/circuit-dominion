@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 import { ALIGNMENTS, FACTIONS } from "./utils.js";
 
 function timing(startup, active, recovery) {
@@ -63,7 +64,7 @@ export const UNIT_DEFS = {
     special: special(
       "aegisBurst",
       "Aegis Burst",
-      "Reduces incoming damage for 2.2 seconds.",
+      "Cuts incoming damage by 42% for 2 seconds.",
       4.8,
       "shield",
       timing(120, 180, 240),
@@ -219,7 +220,7 @@ export const UNIT_DEFS = {
     special: special(
       "nullAura",
       "Null Aura",
-      "Damages nearby opponents for 2.8 seconds.",
+      "Drains nearby opponents for 2.2 seconds.",
       5,
       "aura",
       timing(120, 180, 250),

@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
+import { createPresentation } from "./presentation.js";
 import { FACTIONS } from "./utils.js";
 
 export const TopLevelState = {
@@ -73,6 +75,9 @@ export function createInitialState(mode = "ai", difficulty = "standard") {
     winner: null,
     winReason: "",
     combat: null,
+    // Visual timeline only (tweens, board effects, banners); never rules.
+    presentation: createPresentation(),
+    stats: { duels: 0, draws: 0, upsets: 0, wins: { [FACTIONS.SOLAR]: 0, [FACTIONS.VOID]: 0 }, captures: { [FACTIONS.SOLAR]: 0, [FACTIONS.VOID]: 0 } },
     aiDelayTicks: 0,
     logs: [],
     debug: {

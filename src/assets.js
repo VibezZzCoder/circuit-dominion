@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 
 const MANIFEST_URL = new URL("../assets/live/manifest.json", import.meta.url);
 
@@ -36,7 +37,7 @@ export class AssetManager {
   registerManifest(manifest) {
     for (const asset of manifest.assets || []) {
       this.assets.set(asset.id, asset);
-      if (asset.path && ["background", "unit-sprite", "sprite-sheet", "environment-sprite"].includes(asset.type)) {
+      if (asset.path && ["background", "unit-sprite", "unit-pose", "sprite-sheet", "environment-sprite"].includes(asset.type)) {
         this.loadImage(asset);
       }
     }
@@ -90,6 +91,11 @@ export class AssetManager {
     return this.getImage(`unit.${unitType}`);
   }
 
+  // Optional action pose (e.g. "attack"); null until loaded or when absent.
+  getUnitPoseImage(unitType, pose) {
+    return this.getImage(`unit.${unitType}.${pose}`);
+  }
+
   getAsset(id) {
     return this.assets.get(id) || null;
   }
@@ -102,6 +108,16 @@ export class AssetManager {
     }
     if (portrait) {
       root.style.setProperty("--title-bg-portrait", `url("${this.resolveAssetUrl(portrait.path)}")`);
+    }
+    const arena = this.getAsset("background.combat-arena");
+    if (arena) {
+      root.style.setProperty("--arena-bg", `url("${this.resolveAssetUrl(arena.path)}")`);
+    }
+    // Unit art for DOM portraits (title, unit card, duel HUD, roster, end card).
+    for (const asset of this.assets.values()) {
+      if (asset.type === "unit-sprite" && asset.unitId && asset.path) {
+        root.style.setProperty(`--unit-${asset.unitId}`, `url("${this.resolveAssetUrl(asset.path)}")`);
+      }
     }
   }
 

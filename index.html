@@ -1,56 +1,97 @@
 <!DOCTYPE html>
+<!--
+Circuit Dominion — original game by Edwin RodMen (VibezZzCoder)
+Author: https://github.com/VibezZzCoder
+Source: https://github.com/VibezZzCoder/circuit-dominion
+Play:   https://circuit.erodmen.com/
+
+Copyright (C) 2026 Edwin RodMen
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version, with additional terms under section 7 of that License (NOTICE.md):
+keep this notice and the in-game credit, mark modified versions as modified,
+and do not distribute a modified version under the name Circuit Dominion alone.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+License: GPL-3.0-or-later
+Full license text: LICENSE and NOTICE.md in the source repository.
+-->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="description" content="Circuit Dominion: a light-versus-dark robot strategy game where every capture is a real-time duel.">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Circuit Dominion">
 <title>Circuit Dominion</title>
+<meta name="author" content="Edwin RodMen (VibezZzCoder)">
+<meta name="license" content="GPL-3.0-or-later with section 7 attribution terms">
+<link rel="author" href="https://github.com/VibezZzCoder">
+<link rel="canonical" href="https://circuit.erodmen.com/">
+<link rel="code-repository" href="https://github.com/VibezZzCoder/circuit-dominion">
+<meta property="og:title" content="Circuit Dominion">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuit.erodmen.com/">
+<meta property="og:description" content="An original robot strategy game by Edwin RodMen: claim squares on a 9×9 board, then hold them in real-time duels.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="./styles/main.css">
 </head>
 <body>
 <div id="gameRoot">
   <section id="titleScreen" class="screen active">
+    <div class="heroUnit solarHero" aria-hidden="true"></div>
+    <div class="heroUnit voidHero" aria-hidden="true"></div>
     <div class="hero">
+      <p class="eyebrow"><span class="solarText">Solar Protocol</span> <span class="vsMark">vs</span> <span class="voidText">Void Core</span></p>
       <h1>Circuit Dominion</h1>
-      <p class="versionTag">v0.2 · Controls Update</p>
-      <p class="tagline">Solar Protocol and Void Core fight across a shifting 9×9 energy grid. Move like a board tactician, then settle captures in a real-time robot duel.</p>
+      <p class="tagline">Light against Dark on a living 9×9 grid. Claim a square on the board, then hold it in a real-time robot duel.</p>
       <div class="menu">
-        <button class="primary" id="newAI">Player vs AI<br><span class="small">Recommended start</span></button>
-        <button id="newPVP">Player vs Player<br><span class="small">Local controls</span></button>
-        <button class="void" id="newAI2">Hard Challenge<br><span class="small">Hard AI</span></button>
-        <button id="practiceBtn">Combat Practice<br><span class="small">Learn the controls</span></button>
-        <button id="howBtn">How to Play</button>
+        <div class="modeCard soloCard">
+          <button class="primary" id="newAI"><span class="modeTitle">1 Player</span><span class="small">Command Solar against the Void AI</span></button>
+          <label class="difficultyPicker">Difficulty
+            <select id="difficultySelect">
+              <option value="easy">Easy</option>
+              <option value="standard" selected>Standard</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+        </div>
+        <button class="void" id="newPVP"><span class="modeTitle">2 Players</span><span class="small">One screen · keyboard, pads, or touch</span></button>
+        <button id="practiceBtn"><span class="modeTitle">Training Duel</span><span class="small">Learn the combat controls</span></button>
       </div>
-      <label class="difficultyPicker">Solo difficulty
-        <select id="difficultySelect">
-          <option value="easy">Easy</option>
-          <option value="standard" selected>Standard</option>
-          <option value="hard">Hard</option>
-        </select>
-      </label>
+      <div class="titleFooter"><button id="howBtn" class="ghostBtn">How to Play</button><button id="titleMute" class="ghostBtn">Sound: On</button><label class="volumeControl"><span>Music</span><input type="range" data-volume="music" min="0" max="100" step="5" value="60" aria-label="Music volume"><span class="volumeValue" aria-hidden="true">60%</span></label></div>
       <input type="checkbox" id="duelAIToggle" hidden aria-hidden="true">
-      <p id="inputStatus" class="inputStatus">Keyboard, mouse, touch, or controller. Choose Combat Practice to get comfortable.</p>
-      <p class="small">No remote assets. Original local visuals, Canvas fallbacks, and generated Web Audio.</p>
+      <p id="inputStatus" class="inputStatus">Keyboard, mouse, touch, or controller.</p>
+      <p class="creditLine"><span class="creditBy">Original game by Edwin RodMen</span> <span class="creditSep" aria-hidden="true">·</span> <a class="siteLink" href="https://circuit.erodmen.com/" target="_blank" rel="noopener">circuit.erodmen.com</a> <span aria-hidden="true">·</span> <a class="siteLink" href="https://github.com/VibezZzCoder/circuit-dominion" target="_blank" rel="noopener">GitHub</a></p>
+      <p id="originNotice" class="originNotice" role="note" hidden>You are playing an unofficial copy. Circuit Dominion is an original game by Edwin RodMen; the official version is at <a href="https://circuit.erodmen.com/" target="_blank" rel="noopener">circuit.erodmen.com</a>.</p>
     </div>
   </section>
 
   <section id="boardScreen" class="screen">
     <div class="leftPane"><div class="boardWrap"><canvas id="board" width="900" height="900" tabindex="0" aria-label="Circuit Dominion tactical board. Use arrow keys or a controller to select a square, then confirm."></canvas></div></div>
     <aside class="sidePane">
-      <div class="card status"><h2>Turn</h2><div id="turnBadge"></div><div id="modeLabel" class="small"></div><div id="roundInfo" class="small"></div><div id="chargeInfo" class="small"></div><div id="threatInfo" class="threatInfo"></div></div>
-      <div class="card"><h3>Selected Unit</h3><div id="selectedInfo">Select one of your robots.</div></div>
-      <div class="card"><h3>Power Nodes</h3><div id="nodeInfo"></div></div>
-      <div class="card commandCard"><h3>Command Network</h3><div id="commandInfo" class="small">Nodes charge tactical powers each round.</div><div class="commandButtons"><button id="gridLockBtn">Grid Lock · 1</button><button id="fieldRepairBtn">Field Repair · 1</button><button id="relayBtn">Emergency Relay · 2</button><button id="cancelCommandBtn">Cancel</button></div></div>
-      <div class="card"><h3>Grid Key</h3><div class="legend"><span class="pill">☀ L Light</span><span class="pill">◇ N Flux</span><span class="pill">◆ D Dark</span></div><p class="small">Dashed cells are Flux and shift together each round. White = selected. Green = legal move. Red = attack. Gold = command target.</p></div>
-      <div class="card"><div id="log">Ready.</div><p id="boardControlHint" class="small">Tap a robot, then a highlighted square. Keyboard: arrows + Enter. Controller: D-pad + A.</p><div class="boardTools"><button id="boardHelp">Help</button><button id="muteBtn">Mute</button><button id="restartBtn">Restart</button><button id="boardExit">Menu</button></div></div>
+      <div class="boardTools" role="toolbar" aria-label="Game"><button id="boardHelp">Help</button><button id="muteBtn">Mute</button><button id="labelsBtn" aria-pressed="false" title="Show unit abbreviations on the board">Labels</button><button id="restartBtn">Restart</button><button id="boardExit">Menu</button></div>
+      <div class="card status"><div class="turnRow"><div id="turnBadge"></div><div id="modeLabel" class="small"></div></div><div class="fluxRow"><div id="roundInfo" class="small"></div><div id="fluxTrack" class="fluxTrack" aria-hidden="true"></div></div><div id="chargeInfo" class="chargeInfo"></div><div id="threatInfo" class="threatInfo" role="status"></div></div>
+      <div class="card unitCard"><div class="unitHeader"><div id="selectedPortrait" class="portrait" aria-hidden="true"></div><div class="unitTitle"><div id="selectedName" class="unitName">No robot selected</div><div id="selectedRole" class="small">Select one of your robots.</div><div class="unitHp" aria-hidden="true"><div id="selectedHp"></div></div></div></div><div id="selectedInfo" class="unitDetails">Glowing rings mark robots that can move this turn.</div><div id="duelPreview" class="duelPreview" hidden></div><button id="abilityBtn" class="abilityBtn" hidden>Board ability</button></div>
+      <div class="card nodeCard"><h3>Power Nodes</h3><div class="nodeRow"><div id="nodeMap" class="nodeMap" aria-hidden="true"></div><div id="nodeInfo"></div></div></div>
+      <div class="card commandCard"><h3>Command Network</h3><div id="commandInfo" class="small">Nodes charge tactical powers each round.</div><div class="commandButtons"><button id="gridLockBtn">Grid Lock <span class="cost">●</span></button><button id="fieldRepairBtn">Field Repair <span class="cost">●</span></button><button id="relayBtn">Emergency Relay <span class="cost">●●</span></button><button id="cancelCommandBtn">Cancel</button></div></div>
+      <div class="card logCard"><div id="log" role="status">Ready.</div><ol id="logHistory" class="logHistory" aria-label="Recent events"></ol><p id="boardControlHint" class="small">Tap a robot, then a highlighted square. Keyboard: arrows + Enter. Controller: D-pad + A.</p></div>
+      <details class="card legendCard"><summary>Grid key</summary><div class="legend"><span class="pill">☀ Light</span><span class="pill">◇ Flux</span><span class="pill">◆ Dark</span></div><p class="small">Gold dashed conduits mark Flux cells; they shift together each round. Glowing dots are legal moves, red brackets start a duel, and gold brackets are command targets.</p></details>
     </aside>
   </section>
 
   <section id="combatScreen" class="screen">
     <div class="combatTop">
-      <div class="fighterPanel solarPanel"><div class="fighterHeading"><span class="roleTag" id="p1Role">YOU · SOLAR</span><span class="fighterName" id="p1Name"></span></div><div class="hpBox" aria-label="Solar health"><div class="hpFill" id="p1HP"></div></div><div class="fighterMeters"><div><div class="meterLabel">Reload</div><div class="cdBox"><div class="attackCdFill" id="p1AttackCD"></div></div></div><div><div class="meterLabel" id="p1SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p1CD"></div></div></div></div><div class="small fighterSpecial" id="p1SpecialInfo"></div><div class="small fighterHint" id="p1Hint"></div></div>
-      <div class="fighterPanel voidPanel"><div class="fighterHeading"><span class="roleTag" id="p2Role">AI · VOID</span><span class="fighterName" id="p2Name"></span></div><div class="hpBox" aria-label="Void health"><div class="hpFill" id="p2HP"></div></div><div class="fighterMeters"><div><div class="meterLabel">Reload</div><div class="cdBox"><div class="attackCdFill" id="p2AttackCD"></div></div></div><div><div class="meterLabel" id="p2SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p2CD"></div></div></div></div><div class="small fighterSpecial" id="p2SpecialInfo"></div><div class="small fighterHint" id="p2Hint"></div></div>
+      <div class="fighterPanel solarPanel"><div id="p1Portrait" class="hudPortrait" aria-hidden="true"></div><div class="fighterHeading"><span class="roleTag" id="p1Role">YOU · SOLAR</span><span class="fighterName" id="p1Name"></span></div><div class="hpBox" aria-label="Solar health"><div class="hpTrail" id="p1HPTrail"></div><div class="hpFill" id="p1HP"></div></div><div class="fighterMeters"><div><div class="meterLabel">Reload</div><div class="cdBox"><div class="attackCdFill" id="p1AttackCD"></div></div></div><div><div class="meterLabel" id="p1SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p1CD"></div></div></div></div><div class="small fighterSpecial" id="p1SpecialInfo"></div><div class="small fighterHint" id="p1Hint"></div></div>
+      <div class="fighterPanel voidPanel"><div id="p2Portrait" class="hudPortrait" aria-hidden="true"></div><div class="fighterHeading"><span class="roleTag" id="p2Role">AI · VOID</span><span class="fighterName" id="p2Name"></span></div><div class="hpBox" aria-label="Void health"><div class="hpTrail" id="p2HPTrail"></div><div class="hpFill" id="p2HP"></div></div><div class="fighterMeters"><div><div class="meterLabel">Reload</div><div class="cdBox"><div class="attackCdFill" id="p2AttackCD"></div></div></div><div><div class="meterLabel" id="p2SpecialName">Special</div><div class="cdBox"><div class="cdFill" id="p2CD"></div></div></div></div><div class="small fighterSpecial" id="p2SpecialInfo"></div><div class="small fighterHint" id="p2Hint"></div></div>
       <div class="combatContext" id="modText"></div>
     </div>
     <div class="combatToolbar"><div id="combatMsg" class="small" role="status"></div><div class="combatTools"><button id="pauseBtn">Pause</button><button id="combatHelp">Help</button><button id="combatMute">Mute</button><button id="combatExit">Menu</button></div></div>
@@ -63,23 +104,47 @@
   </section>
 
   <section id="endScreen" class="screen">
-    <div class="hero"><h1 id="winnerTitle">Victory</h1><p id="winnerReason" class="tagline"></p><div class="menu"><button class="primary" id="endRestartAI">Restart vs AI</button><button id="endRestartPVP">Restart PvP</button><button id="endHelp">How to Play</button><button id="endMenu">Main Menu</button></div></div>
+    <div class="hero endHero"><div id="winnerPortrait" class="winnerPortrait" aria-hidden="true"></div><p id="winnerEyebrow" class="eyebrow">Match complete</p><h1 id="winnerTitle">Victory</h1><p id="winnerReason" class="tagline"></p><dl id="matchStats" class="matchStats"></dl><div class="menu endMenu"><button class="primary" id="endRestartAI">Rematch</button><button id="endRestartPVP">2-Player Match</button><button id="endHelp">How to Play</button><button id="endMenu">Main Menu</button></div></div>
   </section>
 
   <div id="helpOverlay" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <div class="helpBox">
-      <h2 id="helpTitle">Circuit Dominion: quick rules</h2>
-      <div class="helpGrid">
-        <div><h3>Board</h3><p>Select one robot, then choose a highlighted square. Moving onto an enemy starts a duel. Units cannot pass through blockers except Glitch Wraith, which may phase through one occupied square.</p></div>
-        <div><h3>Win</h3><p>Destroy the enemy Command Unit, or occupy every ⚡ Power Node at the end of your turn. The HUD warns when either side controls four.</p></div>
-        <div><h3>Energy and Flux</h3><p>Aligned grids grant +8% HP and damage. Hostile grids reduce damage by 6%. The 27 dashed Flux cells shift together Neutral → Light → Neutral → Dark after each full round.</p></div>
-        <div><h3>Touch combat</h3><p>Drag anywhere on MOVE to steer. Hold FIRE for repeated attacks with aim assist; drag on FIRE for manual aim while moving independently. Tap SPECIAL when ready. Release FIRE to return to aim assist. Practice from the title screen before playing a match.</p></div>
-        <div><h3>Keyboard and mouse</h3><p>Solar / P1: <span class="kbd">WASD</span> move, <span class="kbd">Space/F</span> fire, <span class="kbd">Left Shift</span> special. Point in the arena to aim. Void / P2: <span class="kbd">Arrows</span> move, <span class="kbd">Enter or /</span> fire, <span class="kbd">Right Shift</span> special. Without manual aim, firing tracks your opponent.</p></div>
-        <div><h3>Controller</h3><p>Left stick / D-pad moves. Right stick aims. Hold <span class="kbd">A / RT</span> to fire; <span class="kbd">X / LB</span> uses your special. <span class="kbd">Start</span> pauses in combat or opens actions on the board. On menus and the board, use D-pad + A to confirm and B to go back. In Help, D-pad scrolls; A/B closes. Press a button to connect; a second controller controls P2.</p></div>
-        <div><h3>Nodes and commands</h3><p>Node occupants repair 12% HP after their faction turn. Nodes charge up to three Command points each round. Spend them on Grid Lock, Field Repair, or Emergency Relay while your commander lives.</p></div>
-        <div><h3>Board abilities</h3><p>Pulse Medic repairs adjacent allies. Corruptor Bot damages and weakens adjacent enemies for their next two turns. These consume the turn.</p></div>
-        <div><h3>Debug</h3><p><span class="kbd">`</span> toggles debug overlay. <span class="kbd">H</span> help, <span class="kbd">Esc</span> pause duel, <span class="kbd">R</span> restart match.</p></div>
-      </div>
+      <div class="helpHeader"><h2 id="helpTitle">How to play</h2><nav class="helpNav" aria-label="Help sections"><a href="#helpBasics">Basics</a><a href="#helpUnits">Robots</a><a href="#helpControls">Controls</a><a href="#helpAbout">About</a></nav></div>
+      <section id="helpBasics" class="helpSection">
+        <div class="helpGrid">
+          <div><h3>The board</h3><p>Select one of your robots, then a glowing square. Moving onto an enemy starts a real-time duel for that square: the winner keeps it. Robots cannot pass through others, except the Glitch Wraith, which may phase through one.</p></div>
+          <div><h3>How to win</h3><p>Destroy the enemy Command Unit (it wears a gold crown on its base), or occupy all five ⚡ Power Nodes at the end of your turn. The board frame flashes red when a side holds four.</p></div>
+          <div><h3>Light, Dark, and Flux</h3><p>Fighting on your own polarity grants +8% HP and damage; hostile ground reduces damage by 6%. The 27 gold-dashed Flux cells shift together after each round: Neutral → Light → Neutral → Dark. Time your attacks.</p></div>
+          <div><h3>Power Nodes and commands</h3><p>Node occupants repair 12% HP after their turn. Holding nodes charges up to three Command points per side. While your commander lives, spend them on Grid Lock, Field Repair, or Emergency Relay.</p></div>
+          <div><h3>Board abilities</h3><p>Pulse Medic: select it, then click a damaged adjacent ally to repair it. Corruptor Bot: select it and press Corrupt to weaken an adjacent enemy for two turns; clicking an enemy normally starts a duel. Abilities end the turn.</p></div>
+          <div><h3>Wounds carry over</h3><p>Damage taken in a duel stays after it. A victorious but battered robot can be picked off next turn, so retreat to a node to repair.</p></div>
+        </div>
+      </section>
+      <section id="helpUnits" class="helpSection">
+        <h3>Robots</h3>
+        <div id="unitRoster" class="unitRoster"></div>
+      </section>
+      <section id="helpControls" class="helpSection">
+        <div class="helpAudio" role="group" aria-labelledby="helpVolumeTitle">
+          <h3 id="helpVolumeTitle">Volume</h3>
+          <label class="volumeControl"><span>Music</span><input type="range" data-volume="music" min="0" max="100" step="5" value="60" aria-label="Music volume"><span class="volumeValue" aria-hidden="true">60%</span></label>
+          <label class="volumeControl"><span>Effects</span><input type="range" data-volume="sfx" min="0" max="100" step="5" value="100" aria-label="Sound effects volume"><span class="volumeValue" aria-hidden="true">100%</span></label>
+        </div>
+        <div class="helpGrid">
+          <div><h3>Touch</h3><p>Drag anywhere on MOVE to steer. Hold FIRE for repeated attacks with aim assist; drag on FIRE to aim manually while moving. Tap SPECIAL when it is ready. Try the Training Duel from the title screen.</p></div>
+          <div><h3>Keyboard and mouse</h3><p>Solar / P1: <span class="kbd">WASD</span> move, hold <span class="kbd">Space</span> or <span class="kbd">F</span> to fire, <span class="kbd">Left Shift</span> special; point the mouse in the arena to aim. Void / P2: <span class="kbd">Arrows</span> move, hold <span class="kbd">Enter</span> or <span class="kbd">/</span> to fire, <span class="kbd">Right Shift</span> special. Without manual aim, firing tracks your rival.</p></div>
+          <div><h3>Controller</h3><p>Left stick or D-pad moves, right stick aims. Hold <span class="kbd">A</span> or <span class="kbd">RT</span> to fire; <span class="kbd">X</span> or <span class="kbd">LB</span> for special. <span class="kbd">Start</span> pauses a duel or opens actions on the board. Menus: D-pad + <span class="kbd">A</span>, <span class="kbd">B</span> to go back. A second controller plays P2.</p></div>
+          <div><h3>Shortcuts</h3><p><span class="kbd">H</span> help · <span class="kbd">Esc</span> pause a duel · <span class="kbd">R</span> twice to restart the match. Listen for the ready chirp: high for Solar, low for Void.</p></div>
+        </div>
+      </section>
+      <section id="helpAbout" class="helpSection">
+        <h3>About</h3>
+        <div class="helpAboutText">
+          <p><strong>Circuit Dominion v1.0</strong>, an original game by Edwin RodMen (VibezZzCoder). Copyright © 2026 Edwin RodMen.</p>
+          <p>This is free software under the GNU General Public License, version 3 or later, with added attribution terms. You may share and change it. Copies must keep this credit. Changed versions must say they are changed and may not use the Circuit Dominion name on its own. It comes with no warranty.</p>
+          <p>Source code, licence, and full terms: <a class="siteLink" href="https://github.com/VibezZzCoder/circuit-dominion" target="_blank" rel="noopener">github.com/VibezZzCoder/circuit-dominion</a></p>
+        </div>
+      </section>
       <button id="closeHelp" class="primary">Close</button>
     </div>
   </div>

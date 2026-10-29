@@ -1,201 +1,154 @@
 # Circuit Dominion
 
-Browser game inspired by the gameplay structure of classic board-strategy/action-duel games like Archon, but with an original AI robots theme, original units, original names, original visuals, and no copyrighted assets.
+**An original game by Edwin RodMen ([VibezZzCoder](https://github.com/VibezZzCoder)).**
+Source: https://github.com/VibezZzCoder/circuit-dominion
 
-Circuit Dominion is a tactical 9x9 board strategy game with real-time duel resolution between robot factions:
-- Solar Protocol
-- Void Core
+Circuit Dominion is a light-versus-dark robot strategy game. Two robot factions,
+Solar Protocol and Void Core, fight over a living 9×9 grid. Claim a square on
+the board, then hold it in a real-time duel: the winner keeps the square, and
+the damage carries over to the next turn.
+
+The robots, names, rules text, art, music, sound and code are all original to
+this project.
+
+## Play it
+
+- **Online:** [circuit.erodmen.com](https://circuit.erodmen.com/)
+- **Offline:** download `circuit_dominion.single-file.html` from the
+  [Releases page](https://github.com/VibezZzCoder/circuit-dominion/releases) and
+  open it in a browser. It's one file with every image, sound and script inside,
+  so it plays with no internet connection.
+
+Keyboard and mouse, touch (phones and tablets), and standard game controllers
+all work. Two players can share one screen.
 
 ## Screenshots
 
-### Strategic Board
+![Title screen](docs/screenshots/title-screen.png)
 
-![Circuit Dominion board gameplay](docs/screenshots/board-gameplay.png)
+![The tactical board](docs/screenshots/board-gameplay.png)
 
-### Real-Time Combat
+![A real-time duel](docs/screenshots/combat-gameplay.png)
 
-![Circuit Dominion combat gameplay](docs/screenshots/combat-gameplay.png)
+![Two-thumb touch controls on a phone](docs/screenshots/combat-touch-landscape.png)
 
-### Two-Thumb Touch Controls
+## What's new in v1.0
 
-![Circuit Dominion landscape touch combat](docs/screenshots/combat-touch-landscape.png)
+v1.0 is a full overhaul of v0.2:
 
-Fresh gameplay captures from the October 2026 controls update are included above.
+- **Duels:** new attack poses for all 12 robots, a top-down arena floor, slash
+  and muzzle effects, telegraphed specials, impact sparks, damage numbers, KO
+  and overtime banners, and screen shake.
+- **Board:** a new framed board with animated Flux conduits, movement and attack
+  animations, path previews, a duel preview card, and a zoom into each duel.
+- **Audio:** an original procedural chiptune soundtrack and 46 sound effects,
+  with separate Music and Effects volume sliders.
+- **Interface:** a new title screen, side panel, duel HUD, end screen with match
+  stats, and one Help guide with a robot roster.
+- **Phones:** a better fit in iPhone Safari, including a compact landscape duel
+  layout, plus Home Screen support.
+- **Fixes:** many rule, input and balance fixes.
 
-## Gameplay Highlights
+## How to play
 
-- Exact 27 Light / 27 Dark / 27 Flux board distribution
-- Global Flux cycle: Neutral -> Light -> Neutral -> Dark
-- Five Power Nodes with healing, Command charge, and objective victory
-- Grid Lock, Field Repair, and Emergency Relay Command powers
-- Persistent unit HP between board turns and real-time duels
-- Directional attacks, finite projectile range, cover, collision, telegraphed
-  specials, and escalating overtime
-- Easy, Standard, and Hard AI without hidden stat bonuses
-- Hold-to-fire with aim assist, optional independent manual aiming, floating
-  touch sticks, standard-mapping gamepad controls, and a quick Combat Practice
+- **Turns:** select one of your robots, then a highlighted square. Moving onto
+  an enemy starts a duel for that square.
+- **Winning:** destroy the enemy Command Unit (the one with the gold crown), or
+  occupy all five ⚡ Power Nodes at the end of your turn.
+- **Light, Dark and Flux:** fighting on your own polarity gives +8% HP and
+  damage, and hostile ground costs 6% damage. The 27 gold-dashed Flux squares
+  shift together after each round: Neutral → Light → Neutral → Dark.
+- **Power Nodes:** robots on a node repair 12% HP after their turn. Holding nodes
+  charges Command points, which pay for Grid Lock, Field Repair and Emergency
+  Relay.
+- **Wounds carry over:** a battered winner can be picked off next turn.
 
-## Project Structure
-
-- `index.html`: source entry point
-- `src/`: gameplay, combat, rendering, input, UI, AI, platform, state modules
-- `styles/main.css`: styling and responsive layout
-- `assets/live/`: public local runtime backgrounds, sprites, and asset manifest
-- `release/`: deployable build (modular `release/index.html`) plus the generated
-  all-in-one `release/circuit_dominion.single-file.html`
-- `scripts/build-single-file.mjs`: generates the single-file build from source
-
-## Play it here
-
-[Play Circuit Dominion](https://vibezzzcoder.github.io/circuit-dominion/)
-
-Or play the single-file build inside the release folder.
-
-NOTE: `release/circuit_dominion.single-file.html` is a true all-in-one build: the CSS,
-all `src/` modules, and every image are inlined (images as data URIs), so it runs
-offline from a single file with the full art. Regenerate it after source/asset
-changes with `node scripts/build-single-file.mjs` (also run by `node scripts/build-release.mjs`).
-
-## Local Build and Verification
-
-Run `python3 -m http.server 8787 --bind 127.0.0.1`, then open
-`http://127.0.0.1:8787/index.html` for source play or
-`http://127.0.0.1:8787/release/index.html` for the generated release.
-
-Before distributing a changed build, run:
-
-```sh
-node scripts/sanity-tests.mjs
-node scripts/platform-tests.mjs
-node scripts/input-tests.mjs
-node scripts/combat-control-tests.mjs
-node scripts/cover-art-tests.mjs
-node scripts/matchup-simulations.mjs
-node scripts/build-release.mjs
-node scripts/release-tests.mjs
-node scripts/browser-e2e-tests.mjs
-node scripts/package-release.mjs
-```
-
-The build verifies source/release byte parity, exact filenames, the GPL notice,
-local assets, and the single-file output. Browser tests require Chrome/Chromium
-and localhost permissions. `node scripts/compare-hosted.mjs` compares public
-hosted files with the local release without changing anything remotely.
-
-For cover-art-only changes, `CD_E2E_ONLY_COVER=1 node scripts/browser-e2e-tests.mjs`
-checks rendered sprites, exact collision footprints, failed-image fallbacks,
-desktop/phone/tablet layouts, and source/release/embedded HTML over HTTP.
-It does not replace offline file-open or physical-device acceptance.
-
-For publication, use the generated `release/` contents, with its `index.html`
-as the online entry point. Include corresponding GPL source when distributing;
-keep local drafts and QA captures under `assets/work/` out of the upload.
-Publication remains a manual owner action. Physical iPhone and human-play
-acceptance checks are in [the device checklist](docs/DEVICE_CHECKLIST.md).
-The packaging command writes an upload ZIP, corresponding-source ZIP, identical
-offline HTML, instructions, and SHA-256 checksums under `delivery/`. It extracts
-and verifies both ZIPs locally; it never uploads anything.
+Game modes: 1 Player against the Void AI (Easy, Standard or Hard), 2 Players on
+one screen, and a Training Duel for learning the combat controls.
 
 ## Controls
 
-### Board
-- Mouse/touch: select unit and destination square
-- Keyboard: arrows or WASD move the gold cursor; Enter/Space selects; Escape
-  cancels selection. Tab reaches the command and menu buttons.
-- Controller: left stick/D-pad moves the cursor; A selects; B cancels; Start
-  switches between the board and command/menu buttons.
-- `H`: open help
-- `R`: restart current mode
-- `` ` ``: toggle debug overlay
+| | Solar / Player 1 | Void / Player 2 |
+|---|---|---|
+| Move | `WASD` | Arrow keys |
+| Fire (hold) | `Space`, `F`, or left mouse | `Enter` or `/` |
+| Special | `Left Shift` or right mouse | `Right Shift` |
+| Aim | Mouse in the arena (otherwise aim assist) | Aim assist |
 
-### Duel
-- Solar (P1):
-  - Move: `WASD`
-  - Fire: hold `Space` or `F`, or left mouse on the arena
-  - Special: `Left Shift`
-  - Manual aim: point the mouse in the arena; right-click also uses Special
-- Void (P2 in PvP):
-  - Move: Arrow keys
-  - Fire: hold `Enter` or `/`
-  - Special: `Right Shift`
-- Mobile touch:
-  - Touch anywhere inside Move, then drag; your first contact is neutral.
-  - Hold Fire to keep firing when reloaded, with aim assist toward the rival.
-  - Drag on Fire for independent manual aim; tap the named Special when ready.
-  - Move and Fire work simultaneously. PvP has independent control groups.
-- Standard-mapping controller (first connected = Solar; second = Void in PvP):
-  - Left stick/D-pad moves; right stick manually aims.
-  - Hold A or RT to fire; press X or LB for Special; Start pauses; Y opens Help.
-  - Menus: stick/D-pad navigates, A activates, B backs out. Release held controls
-    after a transition or reconnect before beginning a new action.
-  - Help: D-pad scrolls the rules; A or B closes.
-- `Esc`: pause/resume duel
+- **Board:** click or tap a robot, then a square. With the keyboard, arrows move
+  the cursor and Enter selects.
+- **Touch:** drag on MOVE to steer. Hold FIRE to attack, or drag on FIRE to aim
+  by hand. Tap SPECIAL when it's ready.
+- **Controller:** the left stick moves and the right stick aims. Hold A or RT to
+  fire, press X or LB for Special, and press Start to pause. The first connected
+  controller is Solar and the second is Void.
+- **Shortcuts:** `H` opens Help, `Esc` pauses a duel, and `R` twice restarts.
 
-Without manual aim, firing tracks the rival while movement remains independent.
-Shots still have finite range, windup, travel time, and cover collision. Special
-presses buffer briefly near readiness but never repeat merely because held.
-Pause, Help, losing focus, backgrounding, rotation during combat, or controller
-disconnection clear held input. Suspended fights require an explicit Resume.
+## The robots
 
-## Game Modes
+| Solar Protocol | Void Core |
+|---|---|
+| Core Commander | Null Overlord |
+| Photon Striker | Razor Crawler |
+| Arc Sniper | Entropy Cannon |
+| Shield Drone | Glitch Wraith |
+| Pulse Medic | Corruptor Bot |
+| Nova Walker | Gravity Bruiser |
 
-- Player vs AI
-- Player vs Player
-- Combat Practice (Solar Arc Sniper vs Easy Void Entropy Cannon)
+## Run and build from source
 
-PvAI invariant: human always controls Solar in duels; AI always controls Void, regardless of who initiated combat.
+The game is plain HTML, CSS and JavaScript, with no install step. Serve the
+folder with any static server:
 
-## Win Conditions
+```sh
+python3 -m http.server 8787 --bind 127.0.0.1
+```
 
-- Destroy enemy Command Unit
-- Occupy all five Power Nodes at the end of a turn
+Then open http://127.0.0.1:8787/index.html.
 
-## Unit List
+To build the release folder and the all-in-one single file:
 
-### Solar Protocol
-- Core Commander
-- Photon Striker
-- Arc Sniper
-- Shield Drone
-- Pulse Medic
-- Nova Walker
+```sh
+node scripts/build-release.mjs
+```
 
-### Void Core
-- Null Overlord
-- Razor Crawler
-- Entropy Cannon
-- Glitch Wraith
-- Corruptor Bot
-- Gravity Bruiser
+The build also checks that the release still carries the game's credits and
+licence notice, and it refuses to finish if they're missing.
 
-## Polarity and Power Nodes
+To run the tests (Node 22 or later; the browser tests also need Chrome or
+Chromium):
 
-Board squares are:
-- ☀ Light Grid
-- ◆ Dark Grid
-- ◇ Neutral Grid
+```sh
+node scripts/sanity-tests.mjs
+node scripts/origin-tests.mjs
+node scripts/platform-tests.mjs
+node scripts/input-tests.mjs
+node scripts/combat-control-tests.mjs
+node scripts/audio-tests.mjs
+node scripts/presentation-tests.mjs
+node scripts/pose-art-tests.mjs
+node scripts/cover-art-tests.mjs
+node scripts/matchup-simulations.mjs
+node scripts/release-tests.mjs
+node scripts/browser-e2e-tests.mjs
+```
 
-Combat modifiers:
-- Aligned polarity: +8% HP and damage
-- Hostile polarity: -6% damage
-- Neutral: no modifier
+## Licence
 
-The 27 Flux squares advance after both factions complete a turn:
+Copyright (C) 2026 Edwin RodMen.
 
-`Neutral -> Light -> Neutral -> Dark`
+Circuit Dominion is free software under the GNU General Public License,
+version 3 or later ([LICENSE](LICENSE)), **with additional attribution terms
+under section 7** ([NOTICE.md](NOTICE.md)). In short:
 
-Units standing on Power Nodes recover 12% maximum HP after their faction's
-turn. Controlling nodes also charges the three-point Command meter used for
-Grid Lock, Field Repair, and Emergency Relay.
+- You may play, study, change, share and host the game, including changed
+  versions, under the GPL.
+- Every copy must keep the credit to Edwin RodMen (VibezZzCoder) and the link
+  to this repository. That includes the credit in the game itself.
+- Changed versions must say they're changed, for example "Based on Circuit
+  Dominion by Edwin RodMen". They may not use the name Circuit Dominion on its
+  own.
+- Nobody may present this work, or its art, as their own.
 
-## License
-
-Circuit Dominion is licensed under the GNU General Public License v3.0 or later.
-
-You may play, study, modify, share, redistribute, and host this game under the terms of the GPL-3.0-or-later license.
-
-If you distribute modified versions, you must provide the corresponding source code and keep the work under GPL-compatible terms.
-
-The GPL permits commercial distribution, but it does not permit taking away recipients’ GPL rights. Anyone who receives a copy must retain the freedom to inspect, modify, and redistribute it.
-
-Unless otherwise noted, this license applies to the entire project, including code, generated visuals, procedural audio, UI text, faction names, unit names, and game content.
+The licence covers the code, art, audio, interface text, and the faction and
+unit names. The game comes with no warranty.

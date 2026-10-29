@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 import { setBoardTurnState } from "./state.js";
 import { INITIAL_SOLAR_ROW, INITIAL_VOID_ROW, UNIT_DEFS } from "./units.js";
 import {

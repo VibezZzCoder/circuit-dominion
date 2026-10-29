@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional terms under GPL-3.0 section 7 apply; see NOTICE.md.
 import { energyModifierForFaction } from "./board.js";
 import { getDuelAiIntent } from "./ai.js";
 import { createActionTiming, isFighterLocked, setFighterState, tickFighterState } from "./combat-state.js";
@@ -14,6 +15,9 @@ export const ARENA = {
 };
 
 const COMBAT_HP_SCALE = 1.2;
+// Long enough for the KO to read on screen; the arena is frozen meanwhile.
+export const KO_RESOLVE_SEC = 1.25;
+const EVENT_HISTORY_MS = 2500;
 
 export function buildArenaObstacles(energy) {
   if (energy === "L") {
@@ -135,6 +139,7 @@ export function startCombat(game, attacker, defender, row, col) {
     targetRow: row,
     targetCol: col,
     energy,
+    onNode: Boolean(game.board[row][col].node),
     difficulty: game.difficulty,
     state: "combatIntro",
     paused: false,
@@ -144,11 +149,14 @@ export function startCombat(game, attacker, defender, row, col) {
     overtimeStage: 0,
     nowMs: 0,
     rng: Math.random,
-    message: `Duel on ${String.fromCharCode(65 + col)}${row + 1}. ${game.mode === "pvp" ? "P1 Solar · P2 Void." : "You are Solar."} Get ready!`,
+    message: `Duel for ${String.fromCharCode(65 + col)}${row + 1}. ${game.mode === "pvp" ? "P1 Solar · P2 Void." : "You are Solar."} Get ready!`,
     modText: "",
     fighters: [attackerFighter, defenderFighter],
     projectiles: [],
     effects: [],
+    // Visual-only event log (shots, swings, hits, KOs) for renderers and audio.
+    events: [],
+    eventSeq: 0,
     beams: [],
     barriers: [],
     obstacles: buildArenaObstacles(energy),
@@ -162,7 +170,7 @@ export function startCombat(game, attacker, defender, row, col) {
   };
 
   assignControllers(game, combat);
-  combat.modText = `${energyLabel(energy)} · ${attackerFighter.unit.type} ${shortModifierText(attackerFighter.mod)} · ${defenderFighter.unit.type} ${shortModifierText(defenderFighter.mod)}`;
+  combat.modText = groundText(energy);
   game.combat = combat;
   return combat;
 }
@@ -221,10 +229,10 @@ function energyLabel(energy) {
   return "◇ Neutral Grid";
 }
 
-function shortModifierText(mod) {
-  if (mod.hp > 1 || mod.damage > 1) return "+8% HP/damage";
-  if (mod.damage < 1) return "-6% damage";
-  return "no bonus";
+function groundText(energy) {
+  if (energy === "L") return "☀ Light ground · Solar +8% HP and damage · Void −6% damage";
+  if (energy === "D") return "◆ Dark ground · Void +8% HP and damage · Solar −6% damage";
+  return "◇ Neutral ground · no polarity bonus";
 }
 
 function assignControllers(game, combat) {
@@ -267,11 +275,14 @@ export function updateCombat(game, actions, deltaSec, nowMs, audio) {
 
   if (combat.state === "combatIntro" || combat.state === "combatCountdown") {
     combat.state = "combatCountdown";
+    const shownBefore = Math.ceil(combat.countdown);
     combat.countdown = Math.max(0, combat.countdown - deltaSec);
+    if (combat.countdown > 0 && Math.ceil(combat.countdown) < shownBefore) audio.beep("countTick");
     if (combat.countdown <= 0) {
       combat.message = "Fight! Hold Fire to track your rival; move to dodge.";
       combat.state = "combatActive";
-      audio.beep("countdown");
+      pushCombatEvent(combat, "fight", {});
+      audio.beep("fight");
     }
     return null;
   }
@@ -287,12 +298,19 @@ export function updateCombat(game, actions, deltaSec, nowMs, audio) {
   if (overtimeStage > combat.overtimeStage) {
     combat.overtimeStage = overtimeStage;
     combat.message = overtimeStage === 1 ? "Overtime: all damage +25%." : "Critical overtime: all damage +50%.";
-    audio.beep("special");
+    pushCombatEvent(combat, "overtime", { stage: overtimeStage });
+    audio.beep("overtime");
   }
 
   for (const fighter of combat.fighters) {
     fighter.attackCooldown = Math.max(0, fighter.attackCooldown - deltaSec);
+    const specialWasCharging = fighter.specialCooldown > 0;
     fighter.specialCooldown = Math.max(0, fighter.specialCooldown - deltaSec);
+    if (specialWasCharging && fighter.specialCooldown === 0 && fighter.hp > 0) {
+      // Faction-pitched ready chirp: couch players can duel by ear.
+      pushCombatEvent(combat, "specialReady", { slot: fighter.slot, faction: factionOf(fighter) });
+      audio.beep("ready", { faction: factionOf(fighter) });
+    }
     if (!fighter.pendingAction) {
       tickFighterState(fighter, nowMs);
     }
@@ -311,10 +329,12 @@ export function updateCombat(game, actions, deltaSec, nowMs, audio) {
     for (const fighter of combat.fighters) {
       if (fighter.hp <= 0) {
         fighter.state = FighterState.DEAD;
+        pushCombatEvent(combat, "ko", { slot: fighter.slot, x: fighter.x, y: fighter.y, faction: factionOf(fighter) });
       }
     }
     combat.state = "combatResolving";
-    combat.resolveTimer = 0.35;
+    combat.resolveTimer = KO_RESOLVE_SEC;
+    audio.beep("ko");
   }
   return null;
 }
@@ -444,24 +464,37 @@ function beginAttack(fighter, combat, nowMs, audio) {
   fighter.attackCooldown = def.attack.cooldown;
   scheduleAction(fighter, "attack", actionTiming, nowMs);
   setFighterState(fighter, FighterState.ATTACK_STARTUP, nowMs, actionTiming.startupMs);
-  audio.beep("attack");
+  pushCombatEvent(combat, "windup", { slot: fighter.slot, action: "attack" });
   fighter.attackCount += 1;
   return true;
 }
 
 function executeAttack(fighter, opponent, combat, audio) {
   const attack = UNIT_DEFS[fighter.unit.type].attack;
+  const faction = factionOf(fighter);
   if (attack.kind === "melee") {
+    pushCombatEvent(combat, "swing", {
+      slot: fighter.slot,
+      x: fighter.x,
+      y: fighter.y,
+      angle: Math.atan2(fighter.facingY, fighter.facingX),
+      range: attack.range,
+      arcDeg: attack.arcDeg,
+      faction,
+    });
+    audio.beep(faction === "S" ? "meleeSolar" : "meleeVoid", { faction, pan: panFor(fighter) });
     if (directionalMeleeHit(fighter, opponent, attack.range, attack.arcDeg)) {
       damageFighter(opponent, fighter.damage, fighter, combat, audio);
       applyKnockback(opponent, fighter.facingX, fighter.facingY, attack.knockback);
     }
     return;
   }
+  audio.beep(fighter.unit.type === "EC" ? "heavyShot" : faction === "S" ? "shootSolar" : "shootVoid", { faction, pan: panFor(fighter), intensity: 0.5 });
   fireProjectile(fighter, fighter.damage, combat, {
     speed: attack.projectileSpeed,
     radius: attack.projectileRadius,
     range: attack.range,
+    kind: "basic",
   });
 }
 
@@ -476,7 +509,8 @@ function beginSpecial(fighter, combat, nowMs, audio) {
   scheduleAction(fighter, "special", actionTiming, nowMs);
   setFighterState(fighter, FighterState.SPECIAL_STARTUP, nowMs, actionTiming.startupMs);
   combat.message = `${def.name}: ${def.special.name}`;
-  audio.beep("special");
+  pushCombatEvent(combat, "windup", { slot: fighter.slot, action: "special", kind: def.special.kind });
+  audio.beep("special", { faction: def.faction });
   fighter.specialCount += 1;
   return true;
 }
@@ -484,10 +518,23 @@ function beginSpecial(fighter, combat, nowMs, audio) {
 function executeSpecial(fighter, opponent, combat, nowMs, audio) {
   const def = UNIT_DEFS[fighter.unit.type];
   const special = def.special;
+  pushCombatEvent(combat, "special", {
+    slot: fighter.slot,
+    kind: special.kind,
+    x: fighter.x,
+    y: fighter.y,
+    angle: Math.atan2(fighter.facingY, fighter.facingX),
+    faction: def.faction,
+  });
+  const specialSound = {
+    shield: "shield", dash: "dash", chargedProjectile: "lance", barrier: "barrier",
+    repairBurst: "heal", radialBlast: "nova", aura: "aura", heavyProjectile: "heavyShot",
+    blink: "blink", spread: def.faction === "S" ? "shootSolar" : "shootVoid", gravityCone: "gravity",
+  }[special.kind];
+  if (specialSound) audio.beep(specialSound, { faction: def.faction, pan: panFor(fighter) });
   if (special.kind === "shield") {
     fighter.shieldUntil = nowMs + special.durationMs;
     fighter.shieldDamageScale = special.damageScale;
-    spawnFx(combat, fighter.x, fighter.y, "#6dfcff", 18);
   } else if (special.kind === "dash") {
     fighter.dash = {
       vx: fighter.facingX * special.dashSpeed,
@@ -503,13 +550,15 @@ function executeSpecial(fighter, opponent, combat, nowMs, audio) {
       speed: special.projectileSpeed,
       radius: special.projectileRadius,
       range: special.range,
+      kind: "lance",
     });
   } else if (special.kind === "barrier") {
     deployBarrier(fighter, combat, special, nowMs);
   } else if (special.kind === "repairBurst") {
+    const before = fighter.hp;
     fighter.hp = clamp(fighter.hp + special.heal, 0, fighter.maxHp);
-    fireSpread(fighter, fighter.damage * special.damageMultiplier, combat, 2, special.spreadRad);
-    spawnFx(combat, fighter.x, fighter.y, "#7dff96", 14);
+    pushCombatEvent(combat, "heal", { slot: fighter.slot, x: fighter.x, y: fighter.y, amount: fighter.hp - before });
+    fireSpread(fighter, fighter.damage * special.damageMultiplier, combat, 2, special.spreadRad, "pulse");
   } else if (special.kind === "radialBlast") {
     if (dist2d(fighter, opponent) <= special.radius + opponent.radius) {
       damageFighter(opponent, fighter.damage * special.damageMultiplier, fighter, combat, audio);
@@ -521,25 +570,23 @@ function executeSpecial(fighter, opponent, combat, nowMs, audio) {
         special.knockback,
       );
     }
-    spawnFx(combat, fighter.x, fighter.y, "#ffdc63", 36);
   } else if (special.kind === "aura") {
     fighter.auraUntil = nowMs + special.durationMs;
-    spawnFx(combat, fighter.x, fighter.y, "#d56bff", 24);
   } else if (special.kind === "heavyProjectile") {
     fireProjectile(fighter, fighter.damage * special.damageMultiplier, combat, {
       speed: special.projectileSpeed,
       radius: special.projectileRadius,
       range: special.range,
+      kind: "shell",
     });
   } else if (special.kind === "blink") {
     blinkFighter(fighter, combat, special, nowMs);
   } else if (special.kind === "spread") {
-    fireSpread(fighter, fighter.damage * special.damageMultiplier, combat, special.count, special.spreadRad);
+    fireSpread(fighter, fighter.damage * special.damageMultiplier, combat, special.count, special.spreadRad, "spread");
   } else if (special.kind === "gravityCone") {
     fighter.pullUntil = nowMs + special.timing.activeMs;
     fighter.pullImpactAt = fighter.pullUntil - 90;
     fighter.pullImpacted = false;
-    spawnFx(combat, fighter.x, fighter.y, "#d56bff", 24);
   }
 }
 
@@ -609,6 +656,14 @@ function updatePersistentSpecials(combat, dt, nowMs, audio) {
       }
       if (!fighter.pullImpacted && nowMs >= fighter.pullImpactAt) {
         fighter.pullImpacted = true;
+        pushCombatEvent(combat, "gravityImpact", {
+          slot: fighter.slot,
+          x: fighter.x,
+          y: fighter.y,
+          angle: Math.atan2(fighter.facingY, fighter.facingX),
+          range: special.impactRange,
+          faction: factionOf(fighter),
+        });
         if (directionalMeleeHit(fighter, opponent, special.impactRange, special.arcDeg)) {
           damageFighter(opponent, fighter.damage * special.damageMultiplier, fighter, combat, audio);
           applyKnockback(opponent, fighter.facingX, fighter.facingY, 170);
@@ -653,18 +708,24 @@ function blinkFighter(fighter, combat, special, nowMs) {
   fighter.invisUntil = nowMs + special.invulnerableMs;
   fighter.invulnerableUntil = nowMs + special.invulnerableMs;
   setFighterState(fighter, FighterState.PHASING, nowMs, special.invulnerableMs);
-  spawnFx(combat, origin.x, origin.y, "#d56bff", 14);
-  spawnFx(combat, fighter.x, fighter.y, "#d56bff", 18);
+  pushCombatEvent(combat, "blink", {
+    slot: fighter.slot,
+    fromX: origin.x,
+    fromY: origin.y,
+    toX: fighter.x,
+    toY: fighter.y,
+    faction: factionOf(fighter),
+  });
 }
 
-function fireSpread(fighter, damage, combat, count, totalSpread) {
+function fireSpread(fighter, damage, combat, count, totalSpread, kind = "basic") {
   if (count <= 1) {
-    fireProjectile(fighter, damage, combat);
+    fireProjectile(fighter, damage, combat, { kind });
     return;
   }
   for (let index = 0; index < count; index += 1) {
     const offset = -totalSpread / 2 + (totalSpread * index) / (count - 1);
-    fireProjectile(fighter, damage, combat, { angleOffset: offset });
+    fireProjectile(fighter, damage, combat, { angleOffset: offset, kind });
   }
 }
 
@@ -674,9 +735,13 @@ function fireProjectile(fighter, damage, combat, overrides = {}) {
   const speed = overrides.speed || attack.projectileSpeed || 360;
   const radius = overrides.radius || attack.projectileRadius || 5;
   const range = overrides.range || attack.range;
+  const x = fighter.x + Math.cos(angle) * (fighter.radius + radius + 2);
+  const y = fighter.y + Math.sin(angle) * (fighter.radius + radius + 2);
+  const faction = UNIT_DEFS[fighter.unit.type].faction;
+  pushCombatEvent(combat, "shot", { slot: fighter.slot, x, y, angle, kind: overrides.kind || "basic", faction, radius });
   combat.projectiles.push({
-    x: fighter.x + Math.cos(angle) * (fighter.radius + radius + 2),
-    y: fighter.y + Math.sin(angle) * (fighter.radius + radius + 2),
+    x,
+    y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     damage,
@@ -685,7 +750,10 @@ function fireProjectile(fighter, damage, combat, overrides = {}) {
     radius,
     traveled: 0,
     maxDistance: range,
-    color: UNIT_DEFS[fighter.unit.type].faction === "S" ? "#6dfcff" : "#d56bff",
+    kind: overrides.kind || "basic",
+    faction,
+    age: 0,
+    color: faction === "S" ? "#6dfcff" : "#d56bff",
   });
 }
 
@@ -694,6 +762,7 @@ function updateProjectiles(combat, dt, nowMs, audio) {
   for (const projectile of combat.projectiles) {
     const startX = projectile.x;
     const startY = projectile.y;
+    projectile.age = (projectile.age || 0) + dt;
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
     projectile.traveled += Math.hypot(projectile.x - startX, projectile.y - startY);
@@ -706,7 +775,17 @@ function updateProjectiles(combat, dt, nowMs, audio) {
       projectileHitsObstacle(projectile, blockingBarriers)
     ) {
       projectile.traveled = projectile.maxDistance + 1;
-      spawnFx(combat, projectile.x, projectile.y, projectile.color, 5);
+      projectile.impacted = true;
+      pushCombatEvent(combat, "block", {
+        x: projectile.x,
+        y: projectile.y,
+        vx: projectile.vx,
+        vy: projectile.vy,
+        faction: projectile.faction,
+        kind: projectile.kind,
+        radius: projectile.radius,
+      });
+      audio.beep("block");
       continue;
     }
 
@@ -719,9 +798,15 @@ function updateProjectiles(combat, dt, nowMs, audio) {
       const owner = combat.fighters[projectile.ownerSlot];
       damageFighter(opponent, projectile.damage, owner, combat, audio);
       projectile.traveled = projectile.maxDistance + 1;
+      projectile.impacted = true;
     }
   }
 
+  for (const projectile of combat.projectiles) {
+    if (projectile.traveled > projectile.maxDistance && !projectile.impacted) {
+      pushCombatEvent(combat, "fizzle", { x: projectile.x, y: projectile.y, faction: projectile.faction, kind: projectile.kind });
+    }
+  }
   combat.projectiles = combat.projectiles.filter(
     (projectile) =>
       projectile.traveled <= projectile.maxDistance &&
@@ -750,29 +835,35 @@ export function damageFighter(target, amount, source, combat, audio, quiet = fal
   target.hp -= damage;
   target.hurtUntil = combat.nowMs + 110;
   if (!quiet) {
-    audio.beep("hit");
-    spawnFx(
-      combat,
-      target.x,
-      target.y,
-      UNIT_DEFS[source.unit.type].faction === "S" ? "#6dfcff" : "#d56bff",
-      6,
-    );
+    audio.beep("hit", { faction: factionOf(source), intensity: Math.min(1, damage / 40), pan: panFor(target) });
   }
+  pushCombatEvent(combat, "hit", {
+    slot: target.slot,
+    x: target.x,
+    y: target.y,
+    amount: damage,
+    sourceFaction: factionOf(source),
+    quiet,
+  });
   return damage;
 }
 
-function spawnFx(combat, x, y, color, count = 10) {
-  const now = combat.nowMs;
-  for (let index = 0; index < count; index += 1) {
-    combat.effects.push({
-      x: x + (Math.random() - 0.5) * 18,
-      y: y + (Math.random() - 0.5) * 18,
-      radius: 8 + Math.random() * 35,
-      until: now + 250 + Math.random() * 350,
-      life: 400,
-      color,
-    });
+// Stereo position follows the arena, so couch players can hear who fired.
+function panFor(fighter) {
+  return clamp((fighter.x / 480 - 1) * 0.6, -0.6, 0.6);
+}
+
+function factionOf(fighter) {
+  return UNIT_DEFS[fighter.unit.type].faction;
+}
+
+export function pushCombatEvent(combat, type, data) {
+  if (!combat.events) return;
+  combat.eventSeq = (combat.eventSeq || 0) + 1;
+  combat.events.push({ seq: combat.eventSeq, t: combat.nowMs, type, ...data });
+  if (combat.events.length > 96 || combat.events[0].t < combat.nowMs - EVENT_HISTORY_MS) {
+    const cutoff = combat.nowMs - EVENT_HISTORY_MS;
+    combat.events = combat.events.filter((event) => event.t >= cutoff).slice(-96);
   }
 }
 
